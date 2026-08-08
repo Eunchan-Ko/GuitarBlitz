@@ -27,6 +27,7 @@ const UI = (() => {
         /* --- 패널 전환 ------------------------------------------------ */
         showTrainerPanel({ showPause = true } = {}) {
             $('setup-panel').classList.add('hidden');
+            $('leaderboard-panel').classList.add('hidden');
             $('trainer-panel').classList.remove('hidden');
             $('trainer-panel').classList.add('flex');
             $('btn-pause').classList.toggle('hidden', !showPause);
@@ -35,6 +36,7 @@ const UI = (() => {
 
         showSetupPanel() {
             $('setup-panel').classList.remove('hidden');
+            $('leaderboard-panel').classList.remove('hidden');
             $('trainer-panel').classList.add('hidden');
             $('trainer-panel').classList.remove('flex');
             $('btn-pause').classList.add('hidden');
@@ -187,11 +189,16 @@ const UI = (() => {
         },
 
         /* --- 결과 모달 -------------------------------------------------- */
-        showResultModal(result) {
+        showResultModal(result, options = {}) {
             $('result-score').innerText = result.score.toLocaleString();
             $('result-correct').innerText = `${result.correctCount} / ${result.totalCount}`;
             $('result-combo').innerText = result.maxCombo;
             $('result-accuracy').innerText = `${result.accuracy}%`;
+
+            $('result-status').innerText = options.statusMessage || '';
+            $('btn-submit-score').classList.toggle('hidden', !options.canSubmit);
+            $('btn-submit-score').disabled = false;
+            $('btn-submit-score').innerText = '랭킹에 등록하기';
 
             $('result-modal').classList.remove('hidden');
             $('result-modal').classList.add('flex');
@@ -200,6 +207,106 @@ const UI = (() => {
         hideResultModal() {
             $('result-modal').classList.add('hidden');
             $('result-modal').classList.remove('flex');
+        },
+
+        setResultStatus(message) {
+            $('result-status').innerText = message;
+        },
+
+        setSubmitButtonState(enabled, label) {
+            $('btn-submit-score').disabled = !enabled;
+            $('btn-submit-score').innerText = label;
+        },
+
+        hideSubmitButton() {
+            $('btn-submit-score').classList.add('hidden');
+        },
+
+        /* --- 닉네임 ----------------------------------------------------- */
+        showNicknameModal(currentNickname) {
+            $('nickname-input').value = currentNickname || '';
+            this.setNicknameFeedback('', null);
+            $('nickname-modal').classList.remove('hidden');
+            $('nickname-modal').classList.add('flex');
+            $('nickname-input').focus();
+        },
+
+        hideNicknameModal() {
+            $('nickname-modal').classList.add('hidden');
+            $('nickname-modal').classList.remove('flex');
+        },
+
+        setNicknameFeedback(message, ok) {
+            const el = $('nickname-feedback');
+            el.innerText = message;
+            el.className = ok === null || message === ''
+                ? 'text-[11px] mt-2 h-4 text-zinc-500'
+                : `text-[11px] mt-2 h-4 font-medium ${ok ? 'text-emerald-400' : 'text-rose-400'}`;
+        },
+
+        setNicknameDisplay(nickname) {
+            const box = $('player-box');
+            if (!nickname) {
+                box.classList.add('hidden');
+                return;
+            }
+            box.classList.remove('hidden');
+            $('player-nickname').innerText = nickname;
+        },
+
+        /* --- 랭킹 표 ---------------------------------------------------- */
+        setLeaderboardScope(isGlobal) {
+            const badge = $('leaderboard-scope');
+            badge.innerText = isGlobal ? '전체 랭킹' : '이 브라우저 기록';
+            badge.className = isGlobal ? BADGE_ON : BADGE_OFF;
+        },
+
+        renderLeaderboard(rows) {
+            const body = $('leaderboard-body');
+            body.innerHTML = '';
+
+            if (!rows.length) {
+                const empty = document.createElement('div');
+                empty.className = 'py-8 text-center text-xs text-zinc-500';
+                empty.innerText = '아직 등록된 기록이 없습니다. 첫 주자가 되어보세요!';
+                body.appendChild(empty);
+                return;
+            }
+
+            rows.forEach((row, idx) => {
+                const rank = idx + 1;
+                const line = document.createElement('div');
+                line.className = 'grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-lg text-xs '
+                    + (rank <= 3 ? 'bg-amber-500/5 border border-amber-500/20' : 'border border-transparent');
+
+                const isMine = Player.nickname && row.nickname === Player.nickname;
+
+                line.innerHTML = `
+                    <div class="col-span-2 font-black ${rank <= 3 ? 'text-amber-400' : 'text-zinc-500'}">${rankLabel(rank)}</div>
+                    <div class="col-span-5 font-bold truncate ${isMine ? 'text-emerald-400' : 'text-zinc-200'}">${escapeHtml(row.nickname)}${isMine ? ' <span class="text-[10px] font-normal">(나)</span>' : ''}</div>
+                    <div class="col-span-3 text-right font-mono font-bold text-zinc-100">${row.score.toLocaleString()}</div>
+                    <div class="col-span-2 text-right font-mono text-zinc-500">${row.maxCombo}콤보</div>
+                `;
+                body.appendChild(line);
+            });
+        },
+
+        setLeaderboardStatus(message) {
+            $('leaderboard-status').innerText = message;
         }
     };
+
+    function rankLabel(rank) {
+        if (rank === 1) return '🥇';
+        if (rank === 2) return '🥈';
+        if (rank === 3) return '🥉';
+        return `${rank}`;
+    }
+
+    // 닉네임은 다른 사용자가 입력한 값이므로 반드시 이스케이프합니다.
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[ch]);
+    }
 })();
