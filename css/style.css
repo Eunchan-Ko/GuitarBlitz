@@ -1,0 +1,101 @@
+/* ===================================================================
+   커스텀 스타일 — Tailwind 유틸리티로 표현할 수 없는 부분만 담습니다.
+   (색/여백/타이포는 Tailwind 클래스로 마크업에서 처리)
+   =================================================================== */
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    user-select: none;
+}
+
+/* --- 스크롤바 ---------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #18181b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+    border-radius: 3px;
+}
+
+/* --- 지판 -------------------------------------------------------- */
+.fret-board-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 기타 줄. 굵기(height)는 렌더 시 줄 번호에 따라 JS 가 지정합니다. */
+.string-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: linear-gradient(180deg, #a1a1aa, #52525b);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.fret-wire {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(90deg, #71717a, #d4d4d8, #52525b);
+    border-radius: 1px;
+    z-index: 5;
+}
+
+/* 3·5·7·9·12 프렛의 인레이 점 */
+.fret-marker-dot {
+    width: 12px;
+    height: 12px;
+    background: #71717a;
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+.fret-target-btn {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fret-target-btn:hover {
+    transform: scale(1.15);
+    z-index: 30;
+}
+
+/* --- 메트로놈 ---------------------------------------------------- */
+
+/* 좌우 드래그로 템포를 조절하는 영역.
+   touch-action: none 이 없으면 모바일에서 브라우저 스크롤이 제스처를 가로챕니다. */
+.met-slide {
+    touch-action: none;
+    user-select: none;
+}
+
+.met-slide:active {
+    cursor: grabbing;
+}
+
+/* --- 애니메이션 -------------------------------------------------- */
+@keyframes targetPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+    70% {
+        transform: scale(1.15);
+        box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    }
+}
+
+.active-pulse {
+    animation: targetPulse 1.2s infinite;
+}
