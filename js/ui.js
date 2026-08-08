@@ -20,9 +20,27 @@ const UI = (() => {
     const STRING_BTN_OFF = "flex-1 py-2 rounded-lg bg-zinc-800 text-zinc-400 font-bold text-xs border border-zinc-700";
     const BADGE_ON = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
     const BADGE_OFF = "px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700";
+    const TAB_ON = "flex-1 py-2.5 rounded-lg text-xs font-bold transition bg-amber-500 text-zinc-950 shadow";
+    const TAB_OFF = "flex-1 py-2.5 rounded-lg text-xs font-bold transition text-zinc-400 hover:text-zinc-200";
 
     return {
         $,
+
+        /* --- 상단 탭 --------------------------------------------------- */
+        setActiveTab(name) {
+            const isTrainer = name === 'trainer';
+
+            $('view-trainer').classList.toggle('hidden', !isTrainer);
+            $('view-trainer').classList.toggle('flex', isTrainer);
+            $('view-metronome').classList.toggle('hidden', isTrainer);
+            $('view-metronome').classList.toggle('flex', !isTrainer);
+
+            $('tab-trainer').className = isTrainer ? TAB_ON : TAB_OFF;
+            $('tab-metronome').className = isTrainer ? TAB_OFF : TAB_ON;
+
+            $('tab-trainer').innerHTML = '<i class="fa-solid fa-guitar mr-1.5"></i> 지판 트레이너';
+            $('tab-metronome').innerHTML = '<i class="fa-solid fa-stopwatch mr-1.5"></i> 메트로놈';
+        },
 
         /* --- 패널 전환 ------------------------------------------------ */
         showTrainerPanel({ showPause = true } = {}) {
@@ -189,7 +207,7 @@ const UI = (() => {
         },
 
         /* --- 결과 모달 -------------------------------------------------- */
-        showResultModal(result, options = {}) {
+        showResultModal(result, options) {
             $('result-score').innerText = result.score.toLocaleString();
             $('result-correct').innerText = `${result.correctCount} / ${result.totalCount}`;
             $('result-combo').innerText = result.maxCombo;
