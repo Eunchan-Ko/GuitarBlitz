@@ -75,11 +75,24 @@ const Game = {
 
         Fretboard.render({
             maxFret: gameState.maxFret,
+            showNoteNames: this._shouldShowNoteNames(),
             onFretClick: (stringNum, fret) => this.handleFretClick(stringNum, fret)
         });
 
         if (isRank) this._startSessionTimer();
         this.nextQuestion();
+    },
+
+    /**
+     * 화면 지판에 음이름을 표시할지 결정합니다.
+     * 지판에 답이 적혀 있으면 위치를 외우는 게 아니라 읽게 되므로,
+     *   · 랭크전 : 입력 방식과 무관하게 항상 가림
+     *   · 연습 모드 + 터치 : 클릭할 자리가 곧 정답표가 되므로 가림
+     *   · 연습 모드 + 마이크 : 실물 기타를 보며 연주하는 참고용이므로 표시
+     */
+    _shouldShowNoteNames() {
+        if (gameState.mode === 'rank') return false;
+        return gameState.inputMode !== 'touch';
     },
 
     /** 사용자가 중간에 그만둔 경우. 랭크전이라면 기록은 버립니다. */
@@ -272,9 +285,12 @@ const Game = {
         const target = gameState.currentTarget;
         if (stringNum === target.stringNum && fret === target.fret) {
             this.handleSuccess();
-        } else {
-            this.handleFailure(`잘못된 위치! (${stringNum}번줄 ${fret}F)`);
+            return;
         }
+
+        // 지판에 음이름이 가려져 있으므로, 방금 짚은 자리가 무슨 음이었는지 알려줍니다.
+        const playedNote = NOTE_NAMES[(stringConfig.openPitch + fret) % 12];
+        this.handleFailure(`짚은 곳은 ${stringNum}번줄 ${fret}프렛 '${playedNote}'!`);
     },
 
     /* --- 입력: 마이크 ---------------------------------------------- */
