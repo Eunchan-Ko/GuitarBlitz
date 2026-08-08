@@ -1,17 +1,27 @@
 /* ===================================================================
-   게임 흐름 — 설정 변경, 문제 출제, 타이머, 정답/오답 판정
-   DOM 은 UI 모듈을 통해서만 다룹니다.
+   게임 흐름 — 모드 전환, 출제, 타이머, 정답/오답 판정
+   DOM 은 UI 모듈을 통해서만 다루고, 랭킹 제출은 관여하지 않습니다.
+   판이 끝나면 onSessionEnd 콜백으로 결과만 넘깁니다.
    =================================================================== */
 
 const Game = {
+    onSessionEnd: null,   // (result) => void. main.js 가 주입
 
     /* --- 설정 ----------------------------------------------------- */
+    setGameMode(mode) {
+        gameState.mode = mode;
+        UI.setGameModeButtons(mode);
+    },
+
     setInputMode(mode) {
         gameState.inputMode = mode;
         UI.setInputModeButtons(mode);
     },
 
     toggleStringSelect(stringNum) {
+        // 랭크전은 6줄 전체가 고정입니다.
+        if (gameState.mode === 'rank') return;
+
         const idx = gameState.activeStrings.indexOf(stringNum);
 
         if (idx > -1) {
@@ -29,8 +39,17 @@ const Game = {
 
     /* --- 훈련 시작 / 정지 / 일시정지 -------------------------------- */
     start() {
-        gameState.maxFret = UI.readFretRange();
-        gameState.timeLimit = UI.readTimeLimit();
+        const isRank = gameState.mode === 'rank';
+
+        if (isRank) {
+            // 랭킹 비교가 성립하도록 조건을 강제로 맞춥니다.
+            gameState.activeStrings = [...RANK_CONFIG.activeStrings];
+            gameState.maxFret = RANK_CONFIG.maxFret;
+            gameState.timeLimit = RANK_CONFIG.questionSeconds;
+        } else {
+            gameState.maxFret = UI.readFretRange();
+            gameState.timeLimit = UI.readTimeLimit();
+        }
 
         gameState.isTraining = true;
         gameState.isPaused = false;
@@ -38,21 +57,32 @@ const Game = {
         gameState.totalAttempts = 0;
         gameState.successCount = 0;
         gameState.combo = 0;
+        gameState.maxCombo = 0;
+        gameState.score = 0;
+        gameState.questionRemainingRatio = 1;
 
         if (gameState.inputMode === 'mic' && !audioState.isMicActive) {
             PitchEngine.start();
         }
 
-        UI.showTrainerPanel();
+        UI.hideResultModal();
+
+        // 랭크전에서는 일시정지로 시계를 멈출 수 없게 버튼을 숨깁니다.
+        UI.showTrainerPanel({ showPause: !isRank });
+        UI.setSessionBoxVisible(isRank);
+        UI.setScorePoints(0);
+        UI.setScore(0, 100);
 
         Fretboard.render({
             maxFret: gameState.maxFret,
             onFretClick: (stringNum, fret) => this.handleFretClick(stringNum, fret)
         });
 
+        if (isRank) this._startSessionTimer();
         this.nextQuestion();
     },
 
+    /** 사용자가 중간에 그만둔 경우. 랭크전이라면 기록은 버립니다. */
     stop() {
         gameState.isTraining = false;
         gameState.isPaused = false;
@@ -100,41 +130,81 @@ const Game = {
         this._startTimer();
     },
 
+    /*
+     * 타이머는 tick 횟수가 아니라 경과한 실제 시각으로 남은 시간을 계산합니다.
+     * 브라우저는 백그라운드 탭의 setInterval 을 1초 이상으로 throttle 하는데,
+     * tick 을 세면 그만큼 판이 길어지고 속도 보너스도 실제보다 후하게 붙습니다.
+     * 랭크전은 모두가 같은 60초를 써야 성립하므로 벽시계를 기준으로 둡니다.
+     */
     _startTimer() {
         if (gameState.timerId) clearInterval(gameState.timerId);
 
-        if (gameState.timeLimit <= 0) {
-            UI.setTimerBar(100);
-            return;
-        }
-
+        gameState.questionRemainingRatio = 1;
         UI.setTimerBar(100);
 
-        const totalSteps = (gameState.timeLimit * 1000) / JUDGE_CONFIG.timerTickMs;
-        let currentStep = 0;
+        if (gameState.timeLimit <= 0) return;
+
+        const totalMs = gameState.timeLimit * 1000;
+        const startedAt = performance.now();
 
         gameState.timerId = setInterval(() => {
+            // 일시정지 중에는 인터벌이 이미 해제되지만, 경계 상황을 위해 한 번 더 막습니다.
             if (gameState.isPaused) return;
 
-            currentStep++;
-            UI.setTimerBar(Math.max(0, 100 - (currentStep / totalSteps) * 100));
+            const elapsed = performance.now() - startedAt;
+            gameState.questionRemainingRatio = Math.max(0, 1 - elapsed / totalMs);
+            UI.setTimerBar(gameState.questionRemainingRatio * 100);
 
-            if (currentStep >= totalSteps) {
+            if (elapsed >= totalMs) {
                 clearInterval(gameState.timerId);
                 this.handleFailure("시간 초과!");
             }
         }, JUDGE_CONFIG.timerTickMs);
     },
 
+    _startSessionTimer() {
+        const total = RANK_CONFIG.sessionSeconds;
+        const startedAt = performance.now();
+
+        gameState.sessionRemaining = total;
+        UI.setSessionTimer(total, 1);
+
+        gameState.sessionTimerId = setInterval(() => {
+            const elapsed = (performance.now() - startedAt) / 1000;
+            gameState.sessionRemaining = Math.max(0, total - elapsed);
+            UI.setSessionTimer(gameState.sessionRemaining, gameState.sessionRemaining / total);
+
+            if (gameState.sessionRemaining <= 0) this._endSession();
+        }, JUDGE_CONFIG.timerTickMs);
+    },
+
     _clearTimers() {
-        if (gameState.timerId) {
-            clearInterval(gameState.timerId);
-            gameState.timerId = null;
-        }
-        if (gameState.nextQuestionTimerId) {
-            clearTimeout(gameState.nextQuestionTimerId);
-            gameState.nextQuestionTimerId = null;
-        }
+        [['timerId', clearInterval], ['sessionTimerId', clearInterval], ['nextQuestionTimerId', clearTimeout]]
+            .forEach(([key, clear]) => {
+                if (gameState[key]) {
+                    clear(gameState[key]);
+                    gameState[key] = null;
+                }
+            });
+    },
+
+    /** 랭크전 제한시간 소진. 결과를 만들어 콜백으로 넘깁니다. */
+    _endSession() {
+        gameState.isTraining = false;
+        this._clearTimers();
+
+        const result = {
+            score: gameState.score,
+            correctCount: gameState.successCount,
+            totalCount: gameState.totalAttempts,
+            maxCombo: gameState.maxCombo,
+            accuracy: gameState.totalAttempts > 0
+                ? Math.round((gameState.successCount / gameState.totalAttempts) * 100)
+                : 0
+        };
+
+        UI.showSetupPanel();
+        if (this.onSessionEnd) this.onSessionEnd(result);
     },
 
     /* --- 판정 ------------------------------------------------------ */
@@ -147,12 +217,19 @@ const Game = {
         gameState.totalAttempts++;
         gameState.successCount++;
         gameState.combo++;
+        gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+
+        const gained = Score.forQuestion(gameState.questionRemainingRatio, gameState.combo);
+        gameState.score += gained;
+
         AudioEngine.playResultChime(true);
 
         const t = gameState.currentTarget;
-        UI.showFeedback(true, `🎯 정답! ${t.stringNum}번줄 ${t.fret}프렛 (${t.note})`);
-        this._updateScore();
+        const comboTag = gameState.combo >= 2 ? ` ${gameState.combo}콤보 x${Score.comboMultiplier(gameState.combo).toFixed(1)}` : '';
+        UI.showFeedback(true, `🎯 정답! ${t.stringNum}번줄 ${t.fret}프렛 (${t.note})  +${gained}${comboTag}`);
 
+        UI.setScorePoints(gameState.score);
+        this._updateScore();
         this._scheduleNextQuestion(JUDGE_CONFIG.successDelayMs);
     },
 
@@ -168,8 +245,8 @@ const Game = {
 
         const t = gameState.currentTarget;
         UI.showFeedback(false, `❌ ${reason} 정답: ${t.stringNum}번줄 ${t.fret}프렛 (${t.note})`);
-        this._updateScore();
 
+        this._updateScore();
         this._scheduleNextQuestion(JUDGE_CONFIG.failureDelayMs);
     },
 
