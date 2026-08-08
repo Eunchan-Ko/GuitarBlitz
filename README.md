@@ -71,6 +71,7 @@ python -m http.server 8000
 | 한 판 길이 | 60초 고정 | 무제한 (직접 정지) |
 | 설정 | 6줄 전체 · 1~12프렛 · 문제당 3초 **고정** | 자유롭게 변경 |
 | 일시정지 | 불가 (시계를 멈출 수 없음) | 가능 |
+| 랭킹 등록 | 가능 | 불가 |
 
 랭크전 설정을 잠가둔 이유는 단순합니다. 1~7프렛 초급 설정으로 돌린 기록과 12프렛 전체 기록을 같은 표에 올리면 순위가 의미를 잃기 때문입니다.
 
@@ -84,25 +85,57 @@ python -m http.server 8000
 
 오답이나 시간 초과에 콤보가 끊깁니다. 값은 `js/config.js` 의 `SCORE_CONFIG` 에서 조정합니다.
 
+## 🗄️ 랭킹 서버 연결 (Supabase)
+
+설정하지 않아도 게임은 전부 동작합니다. 이 경우 랭킹은 **그 브라우저의 localStorage 에만** 저장됩니다.
+
+전체 랭킹을 쓰려면:
+
+1. [supabase.com](https://supabase.com) 에서 프로젝트 생성 (무료 티어)
+2. **Authentication > Sign In / Providers** 에서 **Anonymous sign-ins** 활성화
+3. **SQL Editor** 에 [`supabase/schema.sql`](supabase/schema.sql) 을 붙여넣고 실행
+4. **Project Settings > API** 의 값을 `js/backend-config.js` 에 입력
+
+```js
+const BACKEND_CONFIG = {
+    supabaseUrl: 'https://xxxxx.supabase.co',
+    supabaseAnonKey: 'eyJhbG...'
+};
+```
+
+anon key 는 공개되도록 설계된 값이라 코드에 넣어도 됩니다. **단, 3번의 RLS 정책을 반드시 함께 적용해야 합니다.** 정책 없이 키만 노출하면 누구나 랭킹을 조작할 수 있습니다.
+
+**알아둘 점**
+
+- 닉네임은 브라우저에 발급된 익명 계정에 묶입니다. 브라우저 데이터를 지우거나 다른 기기에서 접속하면 새 계정이 되고, **원래 쓰던 닉네임은 본인도 되찾을 수 없습니다.** 비밀번호 없는 닉네임의 구조적 한계입니다
+- 점수는 브라우저에서 계산해 전송하므로 위조를 완전히 막을 수 없습니다. 스키마의 `scores_sane` 제약은 터무니없는 값만 걸러내는 최소한의 방어입니다
+- 무료 프로젝트는 일정 기간 요청이 없으면 자동 일시정지될 수 있습니다. 현재 정책은 대시보드에서 확인하세요
+
 ## 구조
 
 빌드 도구 없이 브라우저가 그대로 읽는 정적 파일 구성입니다.
 
 ```
-index.html          마크업 (이벤트 핸들러 없음)
-css/style.css       Tailwind 로 표현 못 하는 커스텀 스타일
+index.html              마크업 (이벤트 핸들러 없음)
+css/style.css           Tailwind 로 표현 못 하는 커스텀 스타일
+supabase/schema.sql     랭킹 테이블 + RLS 정책
 
-js/config.js        음이름·튜닝·판정·점수 파라미터 등 모든 상수
-js/state.js         게임 / 오디오 / 피치 감지 런타임 상태
+js/config.js            음이름·튜닝·판정·점수 파라미터 등 모든 상수
+js/backend-config.js    Supabase 접속 정보 (비워두면 로컬 모드)
+js/state.js             게임 / 오디오 / 피치 감지 런타임 상태
 
-js/ui.js            DOM 읽기·쓰기 전담 (게임 상태를 참조하지 않음)
-js/audio.js         AudioContext 관리 + 효과음 합성
-js/pitch.js         마이크 캡처 + Auto-correlation 피치 감지 (DOM 미접근)
-js/fretboard.js     지판 렌더러
-js/score.js         점수 계산 (순수 함수)
-js/game.js          모드 전환 / 출제 / 타이머 / 정답·오답 판정
+js/ui.js                DOM 읽기·쓰기 전담 (게임 상태를 참조하지 않음)
+js/audio.js             AudioContext 관리 + 효과음 합성
+js/pitch.js             마이크 캡처 + Auto-correlation 피치 감지 (DOM 미접근)
+js/fretboard.js         지판 렌더러
+js/score.js             점수 계산 (순수 함수)
+js/game.js              모드 전환 / 출제 / 타이머 / 정답·오답 판정
 
-js/main.js          진입점, DOM 이벤트 바인딩
+js/backend.js           Supabase 클라이언트 부트스트랩 (실패 시 로컬 모드로 폴백)
+js/player.js            닉네임 등록·변경·중복 확인
+js/leaderboard.js       랭킹 제출·조회 (Supabase / localStorage 어댑터)
+
+js/main.js              진입점, DOM 이벤트 바인딩
 ```
 
 설계 원칙 세 가지입니다.
