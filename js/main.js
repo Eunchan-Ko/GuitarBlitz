@@ -33,6 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    /* --- 상단 탭 ---------------------------------------------------- */
+    UI.$('tab-trainer').addEventListener('click', () => UI.setActiveTab('trainer'));
+
+    UI.$('tab-metronome').addEventListener('click', () => {
+        // 훈련 중에 탭을 옮기면 화면이 사라진 채로 타이머만 도니 정리하고 넘어갑니다.
+        if (gameState.isTraining) Game.stop();
+        UI.setActiveTab('metronome');
+    });
+
     /* --- 설정 패널 -------------------------------------------------- */
     UI.$('game-mode-rank').addEventListener('click', () => Game.setGameMode('rank'));
     UI.$('game-mode-practice').addEventListener('click', () => Game.setGameMode('practice'));
@@ -118,8 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', () => AudioEngine.context(), { once: true });
 
     /* --- 초기화 ----------------------------------------------------- */
+    UI.setActiveTab('trainer');
     Game.setGameMode('rank');
     UI.setInputModeButtons(gameState.inputMode);
+    MetronomeUI.init();
     bootstrapBackend();
 
     /* =============================================================== */

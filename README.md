@@ -85,6 +85,21 @@ python -m http.server 8000
 
 오답이나 시간 초과에 콤보가 끊깁니다. 값은 `js/config.js` 의 `SCORE_CONFIG` 에서 조정합니다.
 
+## 🥁 메트로놈
+
+상단 탭에서 전환합니다.
+
+- **좌우 드래그로 템포 조절** — BPM 패널 어디서나 끌면 됩니다 (모바일 터치 포함). `←` `→` 키, `Shift`+방향키(±10), ±1/±10 버튼도 지원
+- **탭 템포** — 곡의 박에 맞춰 두드리면 최근 간격의 이동 평균으로 BPM 이 따라옵니다. 재생 중에 두드리면 그 시점을 첫 박으로 삼아 박자가 재정렬됩니다
+- **즐겨찾는 템포** — 자주 쓰는 BPM·박자를 저장해두고 한 번에 불러오기 (localStorage, 최대 8개)
+- **박자표** 2/4 ~ 7/8, **박 쪼개기** 4분·8분·셋잇단·16분, **첫 박 강조**, 볼륨
+- 마디 안 위치를 보여주는 비트 인디케이터
+- 단축키: `Space` 시작/정지, `T` 탭
+
+타이밍은 `setInterval` 이 아니라 **AudioContext 시계에 미리 예약**하는 방식입니다. `setInterval` 은 탭 전환이나 GC 로 수십 ms 씩 밀리는데, 메트로놈에서는 그 정도 흔들림이 바로 들립니다.
+
+> ⚠️ 마이크 모드로 훈련하면서 메트로놈을 켜면, 클릭음이 마이크에 잡혀 오답으로 판정될 수 있습니다. 연습 시에는 이어폰을 쓰거나 터치 모드를 사용하세요.
+
 ## 🗄️ 랭킹 서버 연결 (Supabase)
 
 설정하지 않아도 게임은 전부 동작합니다. 이 경우 랭킹은 **그 브라우저의 localStorage 에만** 저장됩니다.
@@ -120,11 +135,11 @@ index.html              마크업 (이벤트 핸들러 없음)
 css/style.css           Tailwind 로 표현 못 하는 커스텀 스타일
 supabase/schema.sql     랭킹 테이블 + RLS 정책
 
-js/config.js            음이름·튜닝·판정·점수 파라미터 등 모든 상수
+js/config.js            음이름·튜닝·판정·점수·메트로놈 파라미터 등 모든 상수
 js/backend-config.js    Supabase 접속 정보 (비워두면 로컬 모드)
 js/state.js             게임 / 오디오 / 피치 감지 런타임 상태
 
-js/ui.js                DOM 읽기·쓰기 전담 (게임 상태를 참조하지 않음)
+js/ui.js                트레이너 화면의 DOM 읽기·쓰기 전담
 js/audio.js             AudioContext 관리 + 효과음 합성
 js/pitch.js             마이크 캡처 + Auto-correlation 피치 감지 (DOM 미접근)
 js/fretboard.js         지판 렌더러
@@ -135,18 +150,21 @@ js/backend.js           Supabase 클라이언트 부트스트랩 (실패 시 로
 js/player.js            닉네임 등록·변경·중복 확인
 js/leaderboard.js       랭킹 제출·조회 (Supabase / localStorage 어댑터)
 
+js/metronome.js         메트로놈 엔진 (DOM 미접근)
+js/metronome-ui.js      메트로놈 화면의 DOM 전담
+
 js/main.js              진입점, DOM 이벤트 바인딩
 ```
 
 설계 원칙 세 가지입니다.
 
-- **UI 모듈은 게임 상태를 읽지 않고, 엔진은 DOM 을 만지지 않습니다.** `pitch.js` 는 콜백으로만 바깥과 통신합니다
-- **HTML 에 `onclick` 이 없습니다.** 모든 이벤트는 `main.js` 에서 등록합니다
+- **UI 모듈은 게임 상태를 읽지 않고, 엔진은 DOM 을 만지지 않습니다.** `pitch.js` 와 `metronome.js` 는 콜백으로만 바깥과 통신합니다
+- **HTML 에 `onclick` 이 없습니다.** 모든 이벤트는 `main.js`(트레이너)와 `metronome-ui.js`(메트로놈)에서 등록합니다
 - **조정 가능한 값은 전부 `js/config.js`** 에 모여 있습니다
 
 기타 참고사항:
 
-- 스크립트는 `index.html` 하단에서 정해진 순서대로 로드됩니다 (`config` → `state` → 엔진 → `game` → `main`)
+- 스크립트는 `index.html` 하단에서 정해진 순서대로 로드됩니다 (`config` → `state` → 엔진 → 백엔드 → `game` → `main`)
 - ES 모듈을 쓰지 않으므로 `index.html` 을 더블클릭해 `file://` 로 열어도 동작합니다
 - Tailwind CSS, FontAwesome, Google Fonts 는 CDN 에서 로드
 - 배포 직후 변경이 반영되지 않으면 브라우저가 이전 JS 를 캐시한 경우입니다. 강력 새로고침(`Ctrl`+`Shift`+`R`)으로 확인하세요

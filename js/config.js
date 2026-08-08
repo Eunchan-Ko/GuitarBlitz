@@ -54,6 +54,25 @@ const SCORE_CONFIG = {
     comboMultiplierMax: 2.0   // 11콤보에서 상한 도달
 };
 
+// 메트로놈
+const METRONOME_CONFIG = {
+    minBpm: 30,
+    maxBpm: 300,
+    defaultBpm: 100,
+
+    // Web Audio 스케줄러. setInterval 로 소리를 내면 박이 밀리므로,
+    // 짧은 주기로 깨어나 조금 앞의 구간을 미리 예약하는 방식을 씁니다.
+    lookaheadMs: 25,          // 스케줄러가 깨어나는 주기
+    scheduleAheadSec: 0.12,   // 얼마나 앞까지 미리 예약할지
+
+    tapTimeoutMs: 2000,       // 이 시간 넘게 쉬면 탭 입력을 새로 시작
+    tapMaxSamples: 8,         // 이동 평균에 쓰는 최근 간격 개수
+    tapMinSamples: 2,
+
+    maxPresets: 8,
+    bpmPerPixel: 0.5          // 드래그 감도 (2px 당 1 BPM)
+};
+
 // 지판 렌더링 레이아웃 (px 단위)
 const FRETBOARD_CONFIG = {
     stringTopOffset: 28,       // 1번줄 y 위치
