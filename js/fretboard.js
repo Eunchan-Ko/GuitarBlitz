@@ -6,9 +6,14 @@
 
 const Fretboard = {
     /**
-     * @param {{maxFret: number, onFretClick: (stringNum: number, fret: number) => void}} options
+     * @param {object} options
+     * @param {number} options.maxFret
+     * @param {boolean} options.showNoteNames
+     *        음이름을 프렛 위에 표시할지. 터치 모드에서는 화면이 정답표가 되어버리므로
+     *        가려두고, 틀렸을 때 무슨 음을 짚었는지 알려주는 쪽으로 학습시킵니다.
+     * @param {(stringNum: number, fret: number) => void} options.onFretClick
      */
-    render({ maxFret, onFretClick }) {
+    render({ maxFret, showNoteNames = true, onFretClick }) {
         const board = document.getElementById('fretboard');
         board.innerHTML = '';
 
@@ -20,7 +25,7 @@ const Fretboard = {
         STRINGS_CONFIG.forEach((stringConfig, idx) => {
             const topPos = FRETBOARD_CONFIG.stringTopOffset + idx * FRETBOARD_CONFIG.stringGap;
             this._renderString(board, stringConfig, topPos);
-            this._renderFretButtons(board, stringConfig, topPos, maxFret, fretWidthPct, onFretClick);
+            this._renderFretButtons(board, stringConfig, topPos, maxFret, fretWidthPct, showNoteNames, onFretClick);
         });
     },
 
@@ -63,7 +68,7 @@ const Fretboard = {
         board.appendChild(stringLabel);
     },
 
-    _renderFretButtons(board, stringConfig, topPos, maxFret, fretWidthPct, onFretClick) {
+    _renderFretButtons(board, stringConfig, topPos, maxFret, fretWidthPct, showNoteNames, onFretClick) {
         for (let f = 1; f <= maxFret; f++) {
             const fretBtn = document.createElement('button');
             fretBtn.className = 'fret-target-btn absolute w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 hover:border-amber-400 flex items-center justify-center text-[10px] font-bold text-zinc-300 transform -translate-x-1/2 -translate-y-1/2 z-20 shadow';
@@ -72,7 +77,13 @@ const Fretboard = {
 
             fretBtn.setAttribute('data-string', stringConfig.number);
             fretBtn.setAttribute('data-fret', f);
-            fretBtn.innerText = NOTE_NAMES[(stringConfig.openPitch + f) % 12];
+
+            if (showNoteNames) {
+                fretBtn.innerText = NOTE_NAMES[(stringConfig.openPitch + f) % 12];
+            } else {
+                // 음이름 대신 짚을 자리만 표시합니다.
+                fretBtn.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>';
+            }
 
             fretBtn.onclick = () => onFretClick(stringConfig.number, f);
             board.appendChild(fretBtn);
