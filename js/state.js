@@ -5,10 +5,11 @@
 
 const gameState = {
     // 사용자 설정
+    mode: 'rank',                      // 'rank'(60초 타임어택) | 'practice'(무제한)
     inputMode: 'mic',                  // 'mic' | 'touch'
     activeStrings: [1, 2, 3, 4, 5, 6],
     maxFret: 12,
-    timeLimit: 3,                      // 초. 0 이면 무제한
+    timeLimit: 3,                      // 문제당 제한시간(초). 0 이면 무제한
 
     // 진행 플래그
     isTraining: false,
@@ -19,13 +20,18 @@ const gameState = {
     totalAttempts: 0,
     successCount: 0,
     combo: 0,
+    maxCombo: 0,
+    score: 0,
 
     // 현재 문제 { stringNum, fret, note, pitch, targetHz }
     currentTarget: null,
+    questionRemainingRatio: 1,         // 속도 보너스 계산용 (남은 시간 비율)
 
     // 타이머 핸들
-    timerId: null,
-    nextQuestionTimerId: null
+    timerId: null,                     // 문제당 제한시간
+    sessionTimerId: null,              // 랭크전 세션 제한시간
+    nextQuestionTimerId: null,
+    sessionRemaining: 0                // 랭크전 남은 초
 };
 
 // Web Audio 장치 및 마이크 설정

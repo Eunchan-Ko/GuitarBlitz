@@ -36,6 +36,24 @@ const JUDGE_CONFIG = {
     timerTickMs: 100           // 타이머 바 갱신 주기
 };
 
+// 랭크전 고정 규칙.
+// 랭킹을 비교하려면 모두가 같은 조건에서 쳐야 하므로, 연습 모드와 달리
+// 줄 범위·프렛 범위·문제당 제한시간을 사용자가 바꿀 수 없습니다.
+const RANK_CONFIG = {
+    sessionSeconds: 60,
+    activeStrings: [1, 2, 3, 4, 5, 6],
+    maxFret: 12,
+    questionSeconds: 3
+};
+
+// 점수 산정. 콤보가 쌓일수록 배율이 올라가고, 빨리 짚을수록 보너스가 붙습니다.
+const SCORE_CONFIG = {
+    basePoints: 100,
+    speedBonusMax: 50,        // 문제 제한시간을 얼마나 남겼는지에 비례
+    comboStep: 0.1,           // 콤보 1당 배율 증가폭
+    comboMultiplierMax: 2.0   // 11콤보에서 상한 도달
+};
+
 // 지판 렌더링 레이아웃 (px 단위)
 const FRETBOARD_CONFIG = {
     stringTopOffset: 28,       // 1번줄 y 위치

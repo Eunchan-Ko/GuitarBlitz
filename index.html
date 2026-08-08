@@ -58,6 +58,31 @@
                     <p class="text-xs text-zinc-400 mb-5">계산하는 습관을 깨고 3초 안에 직관적으로 지판을 짚으세요.</p>
 
                     <div class="space-y-4">
+                        <!-- Game Mode Selection -->
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-300 mb-2">게임 모드</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button type="button" id="game-mode-rank" class="p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left">
+                                    <div class="p-2 bg-amber-500/20 rounded-lg text-amber-400 text-lg">
+                                        <i class="fa-solid fa-trophy"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm">🏆 랭크전 (60초)</div>
+                                        <div class="text-[11px] text-zinc-400 mt-0.5">점수를 겨루고 랭킹에 등록하기</div>
+                                    </div>
+                                </button>
+                                <button type="button" id="game-mode-practice" class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left">
+                                    <div class="p-2 bg-zinc-800 rounded-lg text-zinc-300 text-lg">
+                                        <i class="fa-solid fa-infinity"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm text-zinc-200">🎯 연습 모드</div>
+                                        <div class="text-[11px] text-zinc-400 mt-0.5">시간 제한 없이 원하는 조건으로</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Input Mode Selection -->
                         <div>
                             <label class="block text-xs font-semibold text-zinc-300 mb-2">입력 방식 선택</label>
@@ -83,37 +108,48 @@
                             </div>
                         </div>
 
-                        <!-- Target Strings Range (기본값: 1~6번줄 모두 선택) -->
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-300 mb-2">훈련 대상 기타 줄</label>
-                            <div id="string-selector" class="flex items-center gap-2">
-                                <button id="str-btn-6" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">6줄(E)</button>
-                                <button id="str-btn-5" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">5줄(A)</button>
-                                <button id="str-btn-4" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">4줄(D)</button>
-                                <button id="str-btn-3" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">3줄(G)</button>
-                                <button id="str-btn-2" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">2줄(B)</button>
-                                <button id="str-btn-1" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">1줄(E)</button>
-                            </div>
+                        <!-- Rank mode locks the settings below so scores stay comparable -->
+                        <div id="rank-fixed-notice" class="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/80 leading-relaxed">
+                            <i class="fa-solid fa-lock text-amber-400 mt-0.5"></i>
+                            <span>
+                                랭크전은 공정한 비교를 위해 <b class="text-amber-300">6줄 전체 · 1~12프렛 · 문제당 3초</b>로 고정됩니다.
+                                자유롭게 바꾸려면 연습 모드를 선택하세요.
+                            </span>
                         </div>
 
-                        <!-- Fret Limit & Speed -->
-                        <div class="grid grid-cols-2 gap-4">
+                        <div id="practice-settings" class="space-y-4 opacity-40 pointer-events-none transition-opacity">
+                            <!-- Target Strings Range (기본값: 1~6번줄 모두 선택) -->
                             <div>
-                                <label class="block text-xs font-semibold text-zinc-300 mb-1.5">최대 프렛 범위</label>
-                                <select id="fret-range-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                    <option value="12" selected>1 ~ 12 프렛 (기본)</option>
-                                    <option value="15">1 ~ 15 프렛 (확장)</option>
-                                    <option value="7">1 ~ 7 프렛 (초급)</option>
-                                </select>
+                                <label class="block text-xs font-semibold text-zinc-300 mb-2">훈련 대상 기타 줄</label>
+                                <div id="string-selector" class="flex items-center gap-2">
+                                    <button id="str-btn-6" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">6줄(E)</button>
+                                    <button id="str-btn-5" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">5줄(A)</button>
+                                    <button id="str-btn-4" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">4줄(D)</button>
+                                    <button id="str-btn-3" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">3줄(G)</button>
+                                    <button id="str-btn-2" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">2줄(B)</button>
+                                    <button id="str-btn-1" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">1줄(E)</button>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-zinc-300 mb-1.5">제한 시간 (초)</label>
-                                <select id="timer-limit-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                    <option value="3" selected>3초 (순발력 훈련)</option>
-                                    <option value="2">2초 (동물적 반사)</option>
-                                    <option value="5">5초 (여유 있게)</option>
-                                    <option value="0">제한없음 (무제한)</option>
-                                </select>
+
+                            <!-- Fret Limit & Speed -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-zinc-300 mb-1.5">최대 프렛 범위</label>
+                                    <select id="fret-range-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                        <option value="12" selected>1 ~ 12 프렛 (기본)</option>
+                                        <option value="15">1 ~ 15 프렛 (확장)</option>
+                                        <option value="7">1 ~ 7 프렛 (초급)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-zinc-300 mb-1.5">문제당 제한 시간 (초)</label>
+                                    <select id="timer-limit-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                        <option value="3" selected>3초 (순발력 훈련)</option>
+                                        <option value="2">2초 (동물적 반사)</option>
+                                        <option value="5">5초 (여유 있게)</option>
+                                        <option value="0">제한없음 (무제한)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -122,7 +158,7 @@
                 <!-- Start Training Action Button -->
                 <button id="btn-start" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-play text-lg"></i>
-                    <span>지판 반사신경 훈련 시작하기</span>
+                    <span id="btn-start-label">60초 랭크전 시작하기</span>
                 </button>
             </div>
 
@@ -203,7 +239,7 @@
 
             <!-- Top Target Question Display Card -->
             <div class="bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
-                <!-- Progress Timer Bar -->
+                <!-- Progress Timer Bar (per question) -->
                 <div class="absolute top-0 left-0 right-0 h-1.5 bg-zinc-800">
                     <div id="timer-bar" class="h-full bg-amber-500 transition-all duration-100 ease-linear w-full"></div>
                 </div>
@@ -240,6 +276,19 @@
 
                     <!-- Right Stats Badge & Controls -->
                     <div class="flex items-center gap-3">
+                        <!-- Session countdown (rank mode only) -->
+                        <div id="session-box" class="hidden flex-col items-center px-4 py-2 bg-amber-500/10 rounded-xl border border-amber-500/30 min-w-[86px]">
+                            <div class="text-[10px] text-amber-400/80 font-bold uppercase">남은 시간</div>
+                            <div class="text-xl font-black text-amber-400"><span id="session-remaining">60</span><span class="text-xs">s</span></div>
+                            <div class="w-full h-1 bg-amber-900/40 rounded-full overflow-hidden mt-1">
+                                <div id="session-bar" class="h-full bg-amber-400 transition-all duration-100 ease-linear" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <div class="text-center px-4 py-2 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                            <div class="text-[10px] text-zinc-500 font-bold uppercase">점수</div>
+                            <div id="score-points" class="text-xl font-black text-zinc-100">0</div>
+                        </div>
                         <div class="text-center px-4 py-2 bg-zinc-950/80 rounded-xl border border-zinc-800">
                             <div class="text-[10px] text-zinc-500 font-bold uppercase">연속 성공</div>
                             <div id="score-combo" class="text-xl font-black text-emerald-400">0</div>
@@ -294,9 +343,9 @@
             <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60 flex items-start gap-3">
                 <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400"><i class="fa-solid fa-bolt"></i></div>
                 <div>
-                    <h4 class="text-xs font-bold text-zinc-200">상대적 계산 파괴</h4>
+                    <h4 class="text-xs font-bold text-zinc-200">점수는 이렇게 계산됩니다</h4>
                     <p class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-                        5프렛/7프렛 규칙이나 옥타브 모양으로 계산하지 마세요. 3초 시간 제한은 순수 직관 반사신경만 허용합니다.
+                        정답 100점 + 빨리 짚을수록 속도 보너스 최대 50점, 여기에 콤보 배율(최대 x2.0)이 곱해집니다. 콤보는 오답이나 시간 초과에 끊깁니다.
                     </p>
                 </div>
             </div>
@@ -317,9 +366,45 @@
         GuitarBlitz &copy; Electric Guitar Fretboard Reflex Trainer
     </footer>
 
-    <!-- 로드 순서 주의: config → state → 각 엔진 → game → main -->
+    <!-- ============ RESULT MODAL (랭크전 종료) ============ -->
+    <div id="result-modal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-zinc-950/80 backdrop-blur p-4">
+        <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6">
+            <div class="text-center mb-5">
+                <div class="text-[11px] font-bold uppercase tracking-widest text-amber-400 mb-1">랭크전 종료</div>
+                <div id="result-score" class="text-5xl font-black text-zinc-100 tracking-tight">0</div>
+                <div class="text-xs text-zinc-500 mt-1">점</div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="text-center bg-zinc-950/80 rounded-xl border border-zinc-800 py-3">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">정답</div>
+                    <div id="result-correct" class="text-base font-black text-emerald-400 mt-0.5">0 / 0</div>
+                </div>
+                <div class="text-center bg-zinc-950/80 rounded-xl border border-zinc-800 py-3">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">최고 콤보</div>
+                    <div id="result-combo" class="text-base font-black text-amber-400 mt-0.5">0</div>
+                </div>
+                <div class="text-center bg-zinc-950/80 rounded-xl border border-zinc-800 py-3">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">정답률</div>
+                    <div id="result-accuracy" class="text-base font-black text-zinc-200 mt-0.5">0%</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btn-retry" class="py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> 다시 하기
+                </button>
+                <button id="btn-close-result" class="py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로드 순서 주의: 설정/상태 → 각 엔진 → game → main -->
     <script src="./js/config.js"></script>
     <script src="./js/state.js"></script>
+    <script src="./js/score.js"></script>
     <script src="./js/ui.js"></script>
     <script src="./js/audio.js"></script>
     <script src="./js/pitch.js"></script>

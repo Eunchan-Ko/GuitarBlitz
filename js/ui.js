@@ -25,11 +25,11 @@ const UI = (() => {
         $,
 
         /* --- 패널 전환 ------------------------------------------------ */
-        showTrainerPanel() {
+        showTrainerPanel({ showPause = true } = {}) {
             $('setup-panel').classList.add('hidden');
             $('trainer-panel').classList.remove('hidden');
             $('trainer-panel').classList.add('flex');
-            $('btn-pause').classList.remove('hidden');
+            $('btn-pause').classList.toggle('hidden', !showPause);
             $('btn-stop-header').classList.remove('hidden');
         },
 
@@ -150,6 +150,56 @@ const UI = (() => {
                 fb.classList.add('bg-rose-500/20', 'text-rose-400', 'border', 'border-rose-500/40');
             }
             fb.innerText = message;
+        },
+
+        /* --- 게임 모드 (랭크전 / 연습) --------------------------------- */
+        setGameModeButtons(mode) {
+            const isRank = mode === 'rank';
+            $('game-mode-rank').className = isRank ? MODE_BTN_ON : MODE_BTN_OFF;
+            $('game-mode-practice').className = isRank ? MODE_BTN_OFF : MODE_BTN_ON;
+
+            // 랭크전은 모두 같은 조건이어야 비교가 되므로 설정을 잠급니다.
+            $('rank-fixed-notice').classList.toggle('hidden', !isRank);
+            $('practice-settings').classList.toggle('opacity-40', isRank);
+            $('practice-settings').classList.toggle('pointer-events-none', isRank);
+
+            $('fret-range-select').disabled = isRank;
+            $('timer-limit-select').disabled = isRank;
+
+            $('btn-start-label').innerText = isRank
+                ? `${RANK_CONFIG.sessionSeconds}초 랭크전 시작하기`
+                : '연습 모드 시작하기';
+        },
+
+        /* --- 랭크전 세션 타이머 / 점수 --------------------------------- */
+        setSessionBoxVisible(visible) {
+            $('session-box').classList.toggle('hidden', !visible);
+            $('session-box').classList.toggle('flex', visible);
+        },
+
+        setSessionTimer(remainingSeconds, ratio) {
+            $('session-remaining').innerText = Math.max(0, Math.ceil(remainingSeconds));
+            $('session-bar').style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+        },
+
+        setScorePoints(points) {
+            $('score-points').innerText = points.toLocaleString();
+        },
+
+        /* --- 결과 모달 -------------------------------------------------- */
+        showResultModal(result) {
+            $('result-score').innerText = result.score.toLocaleString();
+            $('result-correct').innerText = `${result.correctCount} / ${result.totalCount}`;
+            $('result-combo').innerText = result.maxCombo;
+            $('result-accuracy').innerText = `${result.accuracy}%`;
+
+            $('result-modal').classList.remove('hidden');
+            $('result-modal').classList.add('flex');
+        },
+
+        hideResultModal() {
+            $('result-modal').classList.add('hidden');
+            $('result-modal').classList.remove('flex');
         }
     };
 })();

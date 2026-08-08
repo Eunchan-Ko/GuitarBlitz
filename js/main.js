@@ -18,7 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
         Game.handleDetectedNote(noteInfo);
     };
 
+    /* --- 판 종료 → 결과 모달 ---------------------------------------- */
+    Game.onSessionEnd = (result) => UI.showResultModal(result);
+
     /* --- 설정 패널 -------------------------------------------------- */
+    UI.$('game-mode-rank').addEventListener('click', () => Game.setGameMode('rank'));
+    UI.$('game-mode-practice').addEventListener('click', () => Game.setGameMode('practice'));
+
     UI.$('mode-btn-mic').addEventListener('click', () => Game.setInputMode('mic'));
     UI.$('mode-btn-touch').addEventListener('click', () => Game.setInputMode('touch'));
 
@@ -44,6 +50,22 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.$('btn-stop-header').addEventListener('click', () => Game.stop());
     UI.$('btn-stop-trainer').addEventListener('click', () => Game.stop());
 
+    /* --- 결과 모달 -------------------------------------------------- */
+    UI.$('btn-close-result').addEventListener('click', () => UI.hideResultModal());
+
+    UI.$('btn-retry').addEventListener('click', () => {
+        UI.hideResultModal();
+        Game.start();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') UI.hideResultModal();
+    });
+
     /* --- 최초 사용자 제스처에 AudioContext 를 깨웁니다 --------------- */
     window.addEventListener('click', () => AudioEngine.context(), { once: true });
+
+    /* --- 초기화 ----------------------------------------------------- */
+    Game.setGameMode('rank');
+    UI.setInputModeButtons(gameState.inputMode);
 });
