@@ -3,76 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FretVision - 일렉기타 지판 반사신경 트레이너</title>
+    <title>GuitarBlitz - 일렉기타 지판 반사신경 트레이너</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            user-select: none;
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #18181b;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #3f3f46;
-            border-radius: 3px;
-        }
-        /* Fretboard styles */
-        .fret-board-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .string-line {
-            position: absolute;
-            left: 0;
-            right: 0;
-            background: linear-gradient(180deg, #a1a1aa, #52525b);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
-            z-index: 10;
-        }
-        .fret-wire {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(90deg, #71717a, #d4d4d8, #52525b);
-            border-radius: 1px;
-            z-index: 5;
-        }
-        .fret-marker-dot {
-            width: 12px;
-            height: 12px;
-            background: #71717a;
-            border-radius: 50%;
-            opacity: 0.6;
-        }
-        .fret-target-btn {
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .fret-target-btn:hover {
-            transform: scale(1.15);
-            z-index: 30;
-        }
-        /* Pulse Animation */
-        @keyframes targetPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-            70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-        .active-pulse {
-            animation: targetPulse 1.2s infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="./css/style.css">
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-amber-500 selection:text-zinc-950">
 
@@ -85,7 +23,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold tracking-tight flex items-center gap-2">
-                        FretVision <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">v2.5 Mic Boost</span>
+                        GuitarBlitz <span class="text-[10px] uppercase font-bold tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">v2.5 Mic Boost</span>
                     </h1>
                     <p class="text-xs text-zinc-400 hidden sm:block">상대적 위치 계산을 파괴하는 일렉기타 지판 반사신경 트레이너</p>
                 </div>
@@ -93,11 +31,11 @@
 
             <!-- Header Controls -->
             <div class="flex items-center gap-2">
-                <button id="btn-pause" onclick="togglePause()" class="hidden bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-zinc-700">
+                <button id="btn-pause" class="hidden bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-zinc-700">
                     <i id="pause-icon" class="fa-solid fa-pause text-amber-400"></i>
                     <span id="pause-text">일시정지</span>
                 </button>
-                <button id="btn-stop-header" onclick="stopTraining()" class="hidden bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                <button id="btn-stop-header" class="hidden bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
                     <i class="fa-solid fa-stop"></i>
                     <span>훈련 정지</span>
                 </button>
@@ -110,7 +48,7 @@
 
         <!-- 1. SETUP & MIC PRE-CHECK CARD (Shown when idle) -->
         <div id="setup-panel" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
+
             <!-- Left: Settings Form -->
             <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-6">
                 <div>
@@ -124,7 +62,7 @@
                         <div>
                             <label class="block text-xs font-semibold text-zinc-300 mb-2">입력 방식 선택</label>
                             <div class="grid grid-cols-2 gap-3">
-                                <button type="button" id="mode-btn-mic" onclick="setInputMode('mic')" class="p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left">
+                                <button type="button" id="mode-btn-mic" class="p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left">
                                     <div class="p-2 bg-amber-500/20 rounded-lg text-amber-400 text-lg">
                                         <i class="fa-solid fa-microphone-lines"></i>
                                     </div>
@@ -133,7 +71,7 @@
                                         <div class="text-[11px] text-zinc-400 mt-0.5">앰프/생기타 소리를 실시간 연주해 맞추기</div>
                                     </div>
                                 </button>
-                                <button type="button" id="mode-btn-touch" onclick="setInputMode('touch')" class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left">
+                                <button type="button" id="mode-btn-touch" class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left">
                                     <div class="p-2 bg-zinc-800 rounded-lg text-zinc-300 text-lg">
                                         <i class="fa-solid fa-hand-pointer"></i>
                                     </div>
@@ -145,17 +83,16 @@
                             </div>
                         </div>
 
-                        <!-- Target Strings Range -->
+                        <!-- Target Strings Range (기본값: 1~6번줄 모두 선택) -->
                         <div>
                             <label class="block text-xs font-semibold text-zinc-300 mb-2">훈련 대상 기타 줄</label>
                             <div id="string-selector" class="flex items-center gap-2">
-                                <!-- Checked by default: 1 to 6 -->
-                                <button onclick="toggleStringSelect(6)" id="str-btn-6" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">6줄(E)</button>
-                                <button onclick="toggleStringSelect(5)" id="str-btn-5" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">5줄(A)</button>
-                                <button onclick="toggleStringSelect(4)" id="str-btn-4" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">4줄(D)</button>
-                                <button onclick="toggleStringSelect(3)" id="str-btn-3" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">3줄(G)</button>
-                                <button onclick="toggleStringSelect(2)" id="str-btn-2" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">2줄(B)</button>
-                                <button onclick="toggleStringSelect(1)" id="str-btn-1" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">1줄(E)</button>
+                                <button id="str-btn-6" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">6줄(E)</button>
+                                <button id="str-btn-5" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">5줄(A)</button>
+                                <button id="str-btn-4" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">4줄(D)</button>
+                                <button id="str-btn-3" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">3줄(G)</button>
+                                <button id="str-btn-2" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">2줄(B)</button>
+                                <button id="str-btn-1" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">1줄(E)</button>
                             </div>
                         </div>
 
@@ -183,7 +120,7 @@
                 </div>
 
                 <!-- Start Training Action Button -->
-                <button onclick="startTraining()" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                <button id="btn-start" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-play text-lg"></i>
                     <span>지판 반사신경 훈련 시작하기</span>
                 </button>
@@ -238,7 +175,7 @@
                                 <span>소프트웨어 증폭 (Gain Boost)</span>
                                 <span id="gain-val-label" class="text-amber-400 font-bold">x5.0 (생기타)</span>
                             </div>
-                            <input type="range" id="gain-slider" min="1" max="20" step="0.5" value="5" oninput="updateGain(this.value)" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                            <input type="range" id="gain-slider" min="1" max="20" step="0.5" value="5" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
                             <p class="text-[10px] text-zinc-500 mt-1">앰프 없이 작게 들리는 생기타 연주 시 높여주세요.</p>
                         </div>
 
@@ -247,13 +184,13 @@
                                 <span>수음 민감도 (노이즈 문턱값)</span>
                                 <span id="thres-val-label" class="text-amber-400 font-bold">민감함 (0.015)</span>
                             </div>
-                            <input type="range" id="thres-slider" min="0.002" max="0.05" step="0.001" value="0.015" oninput="updateThreshold(this.value)" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                            <input type="range" id="thres-slider" min="0.002" max="0.05" step="0.001" value="0.015" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-4 pt-3 border-t border-zinc-800/80">
-                    <button id="btn-toggle-mic" onclick="requestMicPermission()" class="w-full py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition flex items-center justify-center gap-2">
+                    <button id="btn-toggle-mic" class="w-full py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-power-off text-amber-400"></i>
                         <span id="mic-toggle-text">마이크 수음 테스트 켜기</span>
                     </button>
@@ -263,7 +200,7 @@
 
         <!-- 2. GAMEPLAY TRAINER PANEL (Hidden when idle) -->
         <div id="trainer-panel" class="hidden flex-col gap-5">
-            
+
             <!-- Top Target Question Display Card -->
             <div class="bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
                 <!-- Progress Timer Bar -->
@@ -272,7 +209,7 @@
                 </div>
 
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
-                    
+
                     <!-- Question Prompt -->
                     <div class="flex items-center gap-5">
                         <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-3xl font-black shadow-inner">
@@ -311,7 +248,7 @@
                             <div class="text-[10px] text-zinc-500 font-bold uppercase">정답률</div>
                             <div id="score-accuracy" class="text-xl font-black text-amber-400">100%</div>
                         </div>
-                        <button onclick="stopTraining()" class="px-3 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition" title="메인으로 정지">
+                        <button id="btn-stop-trainer" class="px-3 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition" title="메인으로 정지">
                             <i class="fa-solid fa-xmark text-lg"></i>
                         </button>
                     </div>
@@ -332,7 +269,7 @@
                 <!-- Scrollable Fretboard Container -->
                 <div class="fret-board-container relative rounded-xl border border-zinc-800 bg-zinc-950 py-4 shadow-inner">
                     <div id="fretboard" class="relative min-w-[760px] h-[220px]">
-                        <!-- Rendered by JS -->
+                        <!-- Rendered by js/fretboard.js -->
                     </div>
                 </div>
             </div>
@@ -377,670 +314,17 @@
 
     <!-- Footer -->
     <footer class="border-t border-zinc-800/80 bg-zinc-950 py-4 px-4 text-center text-xs text-zinc-600">
-        FretVision &copy; Electric Guitar Fretboard Reflex Trainer
+        GuitarBlitz &copy; Electric Guitar Fretboard Reflex Trainer
     </footer>
 
-    <script>
-        /* ===================================================================
-           1. GAME CONFIGURATION & STATE MANAGEMENT
-           =================================================================== */
-        const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        
-        // Standard tuning string open notes: Index 0=E4(1st string), 1=B3, 2=G3, 3=D3, 4=A2, 5=E2(6th string)
-        const STRINGS_CONFIG = [
-            { number: 1, name: "E4", openPitch: 64, openHz: 329.63 },
-            { number: 2, name: "B3", openPitch: 59, openHz: 246.94 },
-            { number: 3, name: "G3", openPitch: 55, openHz: 196.00 },
-            { number: 4, name: "D3", openPitch: 50, openHz: 146.83 },
-            { number: 5, name: "A2", openPitch: 45, openHz: 110.00 },
-            { number: 6, name: "E2", openPitch: 40, openHz: 82.41 }
-        ];
-
-        let gameState = {
-            inputMode: 'mic', // 'mic' | 'touch'
-            activeStrings: [1, 2, 3, 4, 5, 6],
-            maxFret: 12,
-            timeLimit: 3, // seconds
-            isTraining: false,
-            isPaused: false,
-            isTransitioning: false, // 중복 판정 방지 잠금 플래그
-            
-            // Stats
-            totalAttempts: 0,
-            successCount: 0,
-            combo: 0,
-            
-            // Current Target Question
-            currentTarget: null, // { stringNum, fret, note, pitch, targetHz }
-            
-            // Timer reference
-            timerId: null,
-            timeRemaining: 0
-        };
-
-        // Web Audio & Pitch Detection State
-        let audioCtx = null;
-        let analyserNode = null;
-        let micStream = null;
-        let gainNode = null;
-        let micGainVal = 5.0;
-        let micThreshold = 0.015;
-        let isMicActive = false;
-        let pitchAnimFrame = null;
-
-        let stableNoteCount = 0;
-        let wrongNoteCount = 0;
-        let lastDetectedNote = null;
-        let lastWrongNote = null;
-
-        /* ===================================================================
-           2. WEB AUDIO SYNTHESIZER (Click Feedback Sounds)
-           =================================================================== */
-        function getAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            return audioCtx;
-        }
-
-        function playGuitarSynth(freq) {
-            try {
-                const ctx = getAudioContext();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-                gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-                osc.stop(ctx.currentTime + 1.0);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function playChimeSound(isSuccess) {
-            try {
-                const ctx = getAudioContext();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = isSuccess ? 'sine' : 'sawtooth';
-                osc.frequency.setValueAtTime(isSuccess ? 523.25 : 180, ctx.currentTime);
-                if (isSuccess) {
-                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
-                }
-
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-                osc.stop(ctx.currentTime + 0.3);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        /* ===================================================================
-           3. MICROPHONE & AUTO-CORRELATION PITCH DETECTION ENGINE
-           =================================================================== */
-        async function requestMicPermission() {
-            if (isMicActive) {
-                stopMic();
-                return;
-            }
-
-            try {
-                const ctx = getAudioContext();
-                micStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                const source = ctx.createMediaStreamSource(micStream);
-                gainNode = ctx.createGain();
-                gainNode.gain.value = micGainVal;
-
-                analyserNode = ctx.createAnalyser();
-                analyserNode.fftSize = 2048;
-
-                source.connect(gainNode);
-                gainNode.connect(analyserNode);
-
-                isMicActive = true;
-                updateMicUI(true);
-                startPitchDetectionLoop();
-
-            } catch (err) {
-                alert("마이크 접근 권한이 거부되었거나 지원되지 않는 브라우저입니다: " + err.message);
-                console.error(err);
-            }
-        }
-
-        function stopMic() {
-            if (micStream) {
-                micStream.getTracks().forEach(track => track.stop());
-                micStream = null;
-            }
-            if (pitchAnimFrame) {
-                cancelAnimationFrame(pitchAnimFrame);
-                pitchAnimFrame = null;
-            }
-            isMicActive = false;
-            updateMicUI(false);
-        }
-
-        function updateGain(val) {
-            micGainVal = parseFloat(val);
-            if (gainNode) {
-                gainNode.gain.value = micGainVal;
-            }
-            document.getElementById('gain-val-label').innerText = `x${micGainVal.toFixed(1)} (증폭)`;
-        }
-
-        function updateThreshold(val) {
-            micThreshold = parseFloat(val);
-            document.getElementById('thres-val-label').innerText = `(${micThreshold.toFixed(3)})`;
-            // Move visual threshold bar indicator (0 ~ 0.2 mapped to 0% ~ 100%)
-            const percent = Math.min(100, (micThreshold / 0.1) * 100);
-            document.getElementById('threshold-line').style.left = `${percent}%`;
-        }
-
-        function updateMicUI(active) {
-            const btnText = document.getElementById('mic-toggle-text');
-            const badge = document.getElementById('precheck-badge');
-            const hint = document.getElementById('mic-status-hint');
-
-            if (active) {
-                btnText.innerText = "마이크 수음 끄기";
-                badge.innerText = "수음 중...";
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
-                if (hint) hint.innerText = "🎙️ 실물 기타 소리 감지 중";
-            } else {
-                btnText.innerText = "마이크 수음 테스트 켜기";
-                badge.innerText = "대기 중";
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700";
-                if (hint) hint.innerText = "🎙️ 마이크 꺼짐";
-                
-                document.getElementById('vol-bar-fill').style.width = '0%';
-                document.getElementById('vol-text-val').innerText = '0%';
-                document.getElementById('precheck-note-name').innerText = '--';
-                document.getElementById('precheck-freq').innerText = '0.0 Hz';
-
-                const liveNoteEl = document.getElementById('trainer-live-note');
-                const liveFreqEl = document.getElementById('trainer-live-freq');
-                if (liveNoteEl) liveNoteEl.innerText = '--';
-                if (liveFreqEl) liveFreqEl.innerText = '0.0 Hz';
-            }
-        }
-
-        function startPitchDetectionLoop() {
-            const buffer = new Float32Array(2048);
-
-            function update() {
-                if (!isMicActive || !analyserNode) return;
-
-                analyserNode.getFloatTimeDomainData(buffer);
-                const noteInfo = autoCorrelate(buffer, audioCtx.sampleRate);
-
-                // Update visual volume meter bar
-                const volPercent = Math.min(100, Math.round((noteInfo.rms / 0.1) * 100));
-                document.getElementById('vol-bar-fill').style.width = `${volPercent}%`;
-                document.getElementById('vol-text-val').innerText = `${volPercent}%`;
-
-                if (noteInfo.noteName) {
-                    document.getElementById('precheck-note-name').innerText = noteInfo.noteName;
-                    document.getElementById('precheck-freq').innerText = `${noteInfo.freq.toFixed(1)} Hz`;
-
-                    // Trainer Panel Live Indicator Update
-                    const liveNoteEl = document.getElementById('trainer-live-note');
-                    const liveFreqEl = document.getElementById('trainer-live-freq');
-                    if (liveNoteEl) liveNoteEl.innerText = noteInfo.noteName;
-                    if (liveFreqEl) liveFreqEl.innerText = `${noteInfo.freq.toFixed(1)} Hz`;
-
-                    // Check game answer match
-                    if (gameState.isTraining && !gameState.isPaused) {
-                        checkMicNoteMatch(noteInfo);
-                    }
-                }
-
-                pitchAnimFrame = requestAnimationFrame(update);
-            }
-
-            update();
-        }
-
-        function autoCorrelate(buf, sampleRate) {
-            let SIZE = buf.length;
-            let rms = 0;
-
-            for (let i = 0; i < SIZE; i++) {
-                let val = buf[i];
-                rms += val * val;
-            }
-            rms = Math.sqrt(rms / SIZE);
-
-            if (rms < micThreshold) {
-                return { rms: rms, noteName: null, freq: 0 };
-            }
-
-            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-            for (let i = 0; i < SIZE / 2; i++) {
-                if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-            }
-            for (let i = 1; i < SIZE / 2; i++) {
-                if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-            }
-
-            buf = buf.slice(r1, r2);
-            SIZE = buf.length;
-
-            let c = new Float32Array(SIZE);
-            for (let i = 0; i < SIZE; i++) {
-                for (let j = 0; j < SIZE - i; j++) {
-                    c[i] = c[i] + buf[j] * buf[j + i];
-                }
-            }
-
-            let d = 0;
-            while (c[d] > c[d + 1]) d++;
-            let maxval = -1, maxpos = -1;
-            for (let i = d; i < SIZE; i++) {
-                if (c[i] > maxval) {
-                    maxval = c[i];
-                    maxpos = i;
-                }
-            }
-            let T0 = maxpos;
-
-            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-            let a = (x1 + x3 - 2 * x2) / 2;
-            let b = (x3 - x1) / 2;
-            if (a) T0 = T0 - b / (2 * a);
-
-            let freq = sampleRate / T0;
-            if (freq < 60 || freq > 1000) {
-                return { rms: rms, noteName: null, freq: 0 };
-            }
-
-            let noteNum = 12 * (Math.log(freq / 440) / Math.log(2)) + 69;
-            let roundedNote = Math.round(noteNum);
-            let noteName = NOTE_NAMES[roundedNote % 12];
-
-            return { rms: rms, noteName: noteName, freq: freq };
-        }
-
-        /* ===================================================================
-           4. GAME LOGIC & MATCH EVALUATION
-           =================================================================== */
-        function checkMicNoteMatch(noteInfo) {
-            // 전환 중이거나 정답 처리 중일 때는 마이크 감지 스킵
-            if (gameState.isTransitioning) return;
-
-            const target = gameState.currentTarget;
-            if (!target) return;
-
-            // 마이크는 동일 Hz 음(6번줄 10F D = 5번줄 5F D)의 줄을 구분할 수 없으므로,
-            // 목표 음이름(target.note)이 연주되면 유저를 신뢰하여 즉시 정답 처리합니다.
-            if (noteInfo.noteName === target.note) {
-                wrongNoteCount = 0;
-                lastWrongNote = null;
-
-                if (lastDetectedNote === target.note) {
-                    stableNoteCount++;
-                } else {
-                    stableNoteCount = 1;
-                    lastDetectedNote = target.note;
-                }
-
-                // 2연속 인지 시 즉시 성공
-                if (stableNoteCount >= 2) {
-                    stableNoteCount = 0;
-                    lastDetectedNote = null;
-                    handleSuccess();
-                }
-            } else {
-                // 다른 음(잘못된 음)이 들어온 경우
-                stableNoteCount = 0;
-                
-                if (lastWrongNote === noteInfo.noteName) {
-                    wrongNoteCount++;
-                } else {
-                    wrongNoteCount = 1;
-                    lastWrongNote = noteInfo.noteName;
-                }
-
-                // 실수로 오답 음을 연주하여 3프레임 이상 수음될 경우 무슨 음인지 알려주고 오답 처리
-                if (wrongNoteCount >= 3) {
-                    const playedWrongNote = noteInfo.noteName;
-                    wrongNoteCount = 0;
-                    lastWrongNote = null;
-                    handleFailure(`잘못된 음 연주! (내가 낸 소리: '${playedWrongNote}')`);
-                }
-            }
-        }
-
-        function setInputMode(mode) {
-            gameState.inputMode = mode;
-            const btnMic = document.getElementById('mode-btn-mic');
-            const btnTouch = document.getElementById('mode-btn-touch');
-
-            if (mode === 'mic') {
-                btnMic.className = "p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left";
-                btnTouch.className = "p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left";
-            } else {
-                btnTouch.className = "p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left";
-                btnMic.className = "p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left";
-            }
-        }
-
-        function toggleStringSelect(strNum) {
-            const idx = gameState.activeStrings.indexOf(strNum);
-            const btn = document.getElementById(`str-btn-${strNum}`);
-
-            if (idx > -1) {
-                if (gameState.activeStrings.length <= 1) {
-                    alert("최소 1개 이상의 기타 줄을 선택해야 합니다.");
-                    return;
-                }
-                gameState.activeStrings.splice(idx, 1);
-                btn.className = "flex-1 py-2 rounded-lg bg-zinc-800 text-zinc-400 font-bold text-xs border border-zinc-700";
-            } else {
-                gameState.activeStrings.push(strNum);
-                btn.className = "flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow";
-            }
-        }
-
-        function startTraining() {
-            gameState.maxFret = parseInt(document.getElementById('fret-range-select').value);
-            gameState.timeLimit = parseInt(document.getElementById('timer-limit-select').value);
-            
-            gameState.isTraining = true;
-            gameState.isPaused = false;
-            gameState.totalAttempts = 0;
-            gameState.successCount = 0;
-            gameState.combo = 0;
-
-            if (gameState.inputMode === 'mic' && !isMicActive) {
-                requestMicPermission();
-            }
-
-            document.getElementById('setup-panel').classList.add('hidden');
-            document.getElementById('trainer-panel').classList.remove('hidden');
-            document.getElementById('trainer-panel').classList.add('flex');
-            
-            document.getElementById('btn-pause').classList.remove('hidden');
-            document.getElementById('btn-stop-header').classList.remove('hidden');
-
-            renderFretboard();
-            nextQuestion();
-        }
-
-        function togglePause() {
-            gameState.isPaused = !gameState.isPaused;
-            const btnText = document.getElementById('pause-text');
-            const icon = document.getElementById('pause-icon');
-
-            if (gameState.isPaused) {
-                btnText.innerText = "재개하기";
-                icon.className = "fa-solid fa-play text-amber-400";
-                if (gameState.timerId) clearInterval(gameState.timerId);
-            } else {
-                btnText.innerText = "일시정지";
-                icon.className = "fa-solid fa-pause text-amber-400";
-                startTimer();
-            }
-        }
-
-        function stopTraining() {
-            gameState.isTraining = false;
-            gameState.isPaused = false;
-            if (gameState.timerId) clearInterval(gameState.timerId);
-
-            document.getElementById('setup-panel').classList.remove('hidden');
-            document.getElementById('trainer-panel').classList.add('hidden');
-            document.getElementById('trainer-panel').classList.remove('flex');
-
-            document.getElementById('btn-pause').classList.add('hidden');
-            document.getElementById('btn-stop-header').classList.add('hidden');
-        }
-
-        function nextQuestion() {
-            if (!gameState.isTraining) return;
-
-            // Pick random target string and fret
-            const randomStringNum = gameState.activeStrings[Math.floor(Math.random() * gameState.activeStrings.length)];
-            const randomFret = Math.floor(Math.random() * gameState.maxFret) + 1; // 1 to maxFret
-
-            const stringConfig = STRINGS_CONFIG.find(s => s.number === randomStringNum);
-            const pitch = stringConfig.openPitch + randomFret;
-            const noteName = NOTE_NAMES[pitch % 12];
-            const targetHz = stringConfig.openHz * Math.pow(2, randomFret / 12);
-
-            gameState.currentTarget = {
-                stringNum: randomStringNum,
-                fret: randomFret,
-                note: noteName,
-                pitch: pitch,
-                targetHz: targetHz
-            };
-
-            // Update Question Prompt
-            document.getElementById('target-note-display').innerText = noteName;
-            document.getElementById('target-prompt-text').innerHTML = 
-                `<span class="text-amber-400 font-bold">${randomStringNum}번 줄</span>의 <span class="text-amber-400">${noteName}</span> 음을 연주하세요!`;
-
-            // 이전 연주 잔향 및 오답 카운트 초기화
-            stableNoteCount = 0;
-            wrongNoteCount = 0;
-            lastDetectedNote = null;
-            lastWrongNote = null;
-
-            setTimeout(() => {
-                gameState.isTransitioning = false;
-            }, 400);
-
-            // Reset Timer
-            startTimer();
-        }
-
-        function startTimer() {
-            if (gameState.timerId) clearInterval(gameState.timerId);
-            
-            const timerBar = document.getElementById('timer-bar');
-            if (gameState.timeLimit <= 0) {
-                timerBar.style.width = '100%';
-                return;
-            }
-
-            gameState.timeRemaining = gameState.timeLimit;
-            timerBar.style.width = '100%';
-
-            const intervalMs = 100;
-            const totalSteps = (gameState.timeLimit * 1000) / intervalMs;
-            let currentStep = 0;
-
-            gameState.timerId = setInterval(() => {
-                if (gameState.isPaused) return;
-
-                currentStep++;
-                const percent = Math.max(0, 100 - (currentStep / totalSteps) * 100);
-                timerBar.style.width = `${percent}%`;
-
-                if (currentStep >= totalSteps) {
-                    clearInterval(gameState.timerId);
-                    handleFailure("시간 초과!");
-                }
-            }, intervalMs);
-        }
-
-        function handleSuccess() {
-            if (gameState.isTransitioning) return; // 중복 호출 방지
-            gameState.isTransitioning = true;
-
-            if (gameState.timerId) clearInterval(gameState.timerId);
-            
-            gameState.totalAttempts++;
-            gameState.successCount++;
-            gameState.combo++;
-            playChimeSound(true);
-
-            showFeedback(true, `🎯 정답! ${gameState.currentTarget.stringNum}번줄 ${gameState.currentTarget.fret}프렛 (${gameState.currentTarget.note})`);
-            updateScoreUI();
-
-            setTimeout(() => {
-                nextQuestion();
-            }, 600);
-        }
-
-        function handleFailure(reason = "오답입니다") {
-            if (gameState.isTransitioning) return; // 중복 호출 방지
-            gameState.isTransitioning = true;
-
-            if (gameState.timerId) clearInterval(gameState.timerId);
-
-            gameState.totalAttempts++;
-            gameState.combo = 0;
-            playChimeSound(false);
-
-            showFeedback(false, `❌ ${reason} 정답: ${gameState.currentTarget.stringNum}번줄 ${gameState.currentTarget.fret}프렛 (${gameState.currentTarget.note})`);
-            updateScoreUI();
-
-            setTimeout(() => {
-                nextQuestion();
-            }, 1200);
-        }
-
-        function handleFretClick(stringNum, fret) {
-            if (!gameState.isTraining || gameState.isPaused) return;
-            if (gameState.inputMode !== 'touch') return;
-
-            const target = gameState.currentTarget;
-            const strConfig = STRINGS_CONFIG.find(s => s.number === stringNum);
-            const hz = strConfig.openHz * Math.pow(2, fret / 12);
-            
-            playGuitarSynth(hz);
-
-            if (stringNum === target.stringNum && fret === target.fret) {
-                handleSuccess();
-            } else {
-                handleFailure(`잘못된 위치! (${stringNum}번줄 ${fret}F)`);
-            }
-        }
-
-        function showFeedback(isSuccess, message) {
-            const fb = document.getElementById('feedback-bar');
-            fb.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/40', 'bg-rose-500/20', 'text-rose-400', 'border-rose-500/40');
-            
-            if (isSuccess) {
-                fb.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/40');
-            } else {
-                fb.classList.add('bg-rose-500/20', 'text-rose-400', 'border', 'border-rose-500/40');
-            }
-            fb.innerText = message;
-        }
-
-        function updateScoreUI() {
-            document.getElementById('score-combo').innerText = gameState.combo;
-            const acc = gameState.totalAttempts > 0 
-                ? Math.round((gameState.successCount / gameState.totalAttempts) * 100) 
-                : 100;
-            document.getElementById('score-accuracy').innerText = `${acc}%`;
-        }
-
-        /* ===================================================================
-           5. DYNAMIC FRETBOARD UI RENDERER
-           =================================================================== */
-        function renderFretboard() {
-            const fretboardEl = document.getElementById('fretboard');
-            fretboardEl.innerHTML = '';
-
-            const numFrets = gameState.maxFret;
-            const fretWidthPct = 100 / (numFrets + 0.5);
-
-            // Render Fret Wires and Number Labels
-            for (let f = 0; f <= numFrets; f++) {
-                const fretWire = document.createElement('div');
-                fretWire.className = 'fret-wire';
-                fretWire.style.left = `${(f + 0.5) * fretWidthPct}%`;
-                fretboardEl.appendChild(fretWire);
-
-                // Fret Number Label at Top
-                if (f > 0) {
-                    const numLabel = document.createElement('div');
-                    numLabel.className = 'absolute top-0 text-[10px] font-bold text-zinc-500 transform -translate-x-1/2';
-                    numLabel.style.left = `${f * fretWidthPct}%`;
-                    numLabel.innerText = f;
-                    fretboardEl.appendChild(numLabel);
-                }
-
-                // Standard Inlay Dots on 3, 5, 7, 9, 12 frets
-                if ([3, 5, 7, 9, 12].includes(f)) {
-                    const dot = document.createElement('div');
-                    dot.className = 'fret-marker-dot absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2';
-                    dot.style.left = `${f * fretWidthPct}%`;
-                    fretboardEl.appendChild(dot);
-                }
-            }
-
-            // Render 6 Strings (Top string = 1st string High E, Bottom = 6th string Low E)
-            STRINGS_CONFIG.forEach((stringConfig, idx) => {
-                const topPos = 28 + idx * 30; // Vertical spacing
-
-                // String Line Element
-                const stringLine = document.createElement('div');
-                stringLine.className = 'string-line';
-                stringLine.style.top = `${topPos}px`;
-                // String thickness (6th string thicker than 1st)
-                stringLine.style.height = `${1.2 + (6 - stringConfig.number) * 0.5}px`;
-                fretboardEl.appendChild(stringLine);
-
-                // String Label Button on left nut
-                const stringLabel = document.createElement('div');
-                stringLabel.className = 'absolute left-0 text-[10px] font-bold bg-zinc-800 text-amber-400 px-1.5 py-0.5 rounded border border-zinc-700 transform -translate-y-1/2 z-20';
-                stringLabel.style.top = `${topPos}px`;
-                stringLabel.innerText = `${stringConfig.number}줄`;
-                fretboardEl.appendChild(stringLabel);
-
-                // Fret Interactive Click Nodes
-                for (let f = 1; f <= numFrets; f++) {
-                    const fretBtn = document.createElement('button');
-                    fretBtn.className = 'fret-target-btn absolute w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 hover:border-amber-400 flex items-center justify-center text-[10px] font-bold text-zinc-300 transform -translate-x-1/2 -translate-y-1/2 z-20 shadow';
-                    fretBtn.style.left = `${f * fretWidthPct}%`;
-                    fretBtn.style.top = `${topPos}px`;
-                    
-                    const pitch = stringConfig.openPitch + f;
-                    const noteName = NOTE_NAMES[pitch % 12];
-                    
-                    fretBtn.setAttribute('data-string', stringConfig.number);
-                    fretBtn.setAttribute('data-fret', f);
-                    fretBtn.innerText = noteName;
-
-                    fretBtn.onclick = () => handleFretClick(stringConfig.number, f);
-                    fretboardEl.appendChild(fretBtn);
-                }
-            });
-        }
-
-        // Initialize Audio Context on first click
-        window.addEventListener('click', () => {
-            getAudioContext();
-        }, { once: true });
-    </script>
+    <!-- 로드 순서 주의: config → state → 각 엔진 → game → main -->
+    <script src="./js/config.js"></script>
+    <script src="./js/state.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/audio.js"></script>
+    <script src="./js/pitch.js"></script>
+    <script src="./js/fretboard.js"></script>
+    <script src="./js/game.js"></script>
+    <script src="./js/main.js"></script>
 </body>
 </html>
