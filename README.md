@@ -83,7 +83,7 @@ python -m http.server 8000
   콤보배율   = 1.0 + (콤보-1) × 0.1, 최대 2.0  (11콤보에서 상한)
 ```
 
-오답이나 시간 초과에 콤보가 끊깁니다. 값은 `js/config.js` 의 `SCORE_CONFIG` 에서 조정합니다.
+오답이나 시간 초과에 콤보가 끊깁니다. 값은 `js/core/config.js` 의 `SCORE_CONFIG` 에서 조정합니다.
 
 **지판 음이름 가리기**
 
@@ -102,7 +102,7 @@ python -m http.server 8000
 ❌ 짚은 곳은 3번줄 1프렛 'G#'!  정답: 3번줄 12프렛 (G)
 ```
 
-판단 로직은 `js/game.js` 의 `Game._shouldShowNoteNames()` 한 곳에 있습니다.
+판단 로직은 `js/trainer/game.js` 의 `Game._shouldShowNoteNames()` 한 곳에 있습니다.
 
 ## 🥁 메트로놈
 
@@ -128,7 +128,7 @@ python -m http.server 8000
 1. [supabase.com](https://supabase.com) 에서 프로젝트 생성 (무료 티어)
 2. **Authentication > Sign In / Providers** 에서 **Anonymous sign-ins** 활성화
 3. **SQL Editor** 에 [`supabase/schema.sql`](supabase/schema.sql) 을 붙여넣고 실행
-4. **Project Settings > API** 의 값을 `js/backend-config.js` 에 입력
+4. **Project Settings > API** 의 값을 `js/backend/backend-config.js` 에 입력
 
 ```js
 const BACKEND_CONFIG = {
@@ -150,41 +150,50 @@ anon key 는 공개되도록 설계된 값이라 코드에 넣어도 됩니다. 
 빌드 도구 없이 브라우저가 그대로 읽는 정적 파일 구성입니다.
 
 ```
-index.html              마크업 (이벤트 핸들러 없음)
-css/style.css           Tailwind 로 표현 못 하는 커스텀 스타일
-supabase/schema.sql     랭킹 테이블 + RLS 정책
+index.html                        레이아웃 뼈대 (헤더/탭/컨테이너/스크립트 로드)
+supabase/schema.sql               랭킹 테이블 + RLS 정책
 
-js/config.js            음이름·튜닝·판정·점수·메트로놈 파라미터 등 모든 상수
-js/backend-config.js    Supabase 접속 정보 (비워두면 로컬 모드)
-js/state.js             게임 / 오디오 / 피치 감지 런타임 상태
+html/view-trainer.html            지판 트레이너 뷰 마크업 (partial)
+html/view-metronome.html          메트로놈 뷰 마크업 (partial)
+html/modals.html                  결과/닉네임 모달 마크업 (partial)
 
-js/ui.js                트레이너 화면의 DOM 읽기·쓰기 전담
-js/audio.js             AudioContext 관리 + 효과음 합성
-js/pitch.js             마이크 캡처 + Auto-correlation 피치 감지 (DOM 미접근)
-js/fretboard.js         지판 렌더러
-js/score.js             점수 계산 (순수 함수)
-js/game.js              모드 전환 / 출제 / 타이머 / 정답·오답 판정
+css/base.css                      공통 스타일 (전역 규칙만)
+css/trainer.css                   지판 트레이너 뷰 전용 스타일
+css/metronome.css                 메트로놈 뷰 전용 스타일
 
-js/backend.js           Supabase 클라이언트 부트스트랩 (실패 시 로컬 모드로 폴백)
-js/player.js            닉네임 등록·변경·중복 확인
-js/leaderboard.js       랭킹 제출·조회 (Supabase / localStorage 어댑터)
+js/core/partials.js               html/ partial 을 fetch 해 주입하는 로더
+js/core/config.js                 음이름·튜닝·판정·점수·메트로놈 파라미터 등 모든 상수
+js/core/state.js                  게임 / 오디오 / 피치 감지 런타임 상태
+js/core/audio.js                  AudioContext 관리 + 효과음 합성
+js/core/ui.js                     UI 셸 (탭/패널 전환, 닉네임 표시·모달)
 
-js/metronome.js         메트로놈 엔진 (DOM 미접근)
-js/metronome-ui.js      메트로놈 화면의 DOM 전담
+js/trainer/trainer-ui.js          트레이너 화면의 DOM 읽기·쓰기 전담 (UI 확장)
+js/trainer/pitch.js               마이크 캡처 + Auto-correlation 피치 감지 (DOM 미접근)
+js/trainer/fretboard.js           지판 렌더러
+js/trainer/score.js               점수 계산 (순수 함수)
+js/trainer/game.js                모드 전환 / 출제 / 타이머 / 정답·오답 판정
 
-js/main.js              진입점, DOM 이벤트 바인딩
+js/metronome/metronome.js         메트로놈 엔진 (DOM 미접근)
+js/metronome/metronome-ui.js      메트로놈 화면의 DOM 전담
+
+js/backend/backend-config.js      Supabase 접속 정보 (비워두면 로컬 모드)
+js/backend/backend.js             Supabase 클라이언트 부트스트랩 (실패 시 로컬 모드로 폴백)
+js/backend/player.js              닉네임 등록·변경·중복 확인
+js/backend/leaderboard.js         랭킹 제출·조회 (Supabase / localStorage 어댑터)
+
+js/main.js                        진입점, DOM 이벤트 바인딩 (조립 루트)
 ```
 
 설계 원칙 세 가지입니다.
 
 - **UI 모듈은 게임 상태를 읽지 않고, 엔진은 DOM 을 만지지 않습니다.** `pitch.js` 와 `metronome.js` 는 콜백으로만 바깥과 통신합니다
 - **HTML 에 `onclick` 이 없습니다.** 모든 이벤트는 `main.js`(트레이너)와 `metronome-ui.js`(메트로놈)에서 등록합니다
-- **조정 가능한 값은 전부 `js/config.js`** 에 모여 있습니다
+- **조정 가능한 값은 전부 `js/core/config.js`** 에 모여 있습니다
 
 기타 참고사항:
 
-- 스크립트는 `index.html` 하단에서 정해진 순서대로 로드됩니다 (`config` → `state` → 엔진 → 백엔드 → `game` → `main`)
-- ES 모듈을 쓰지 않으므로 `index.html` 을 더블클릭해 `file://` 로 열어도 동작합니다
+- 스크립트는 `index.html` 하단에서 정해진 순서대로 로드됩니다 (`partials` → `core` → 뷰별 모듈 → `backend` → `main`). `js/trainer/trainer-ui.js` 는 `js/core/ui.js` 의 `UI` 네임스페이스를 확장하므로 반드시 그 뒤에 로드해야 합니다
+- 뷰 마크업을 `fetch` 로 불러오므로 `file://` 로는 열 수 없고 로컬 서버가 필요합니다 (위 [로컬에서 실행](#로컬에서-실행) 참고)
 - Tailwind CSS, FontAwesome, Google Fonts 는 CDN 에서 로드
 - 배포 직후 변경이 반영되지 않으면 브라우저가 이전 JS 를 캐시한 경우입니다. 강력 새로고침(`Ctrl`+`Shift`+`R`)으로 확인하세요
 

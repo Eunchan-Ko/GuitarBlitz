@@ -10,7 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./css/style.css">
+    <!-- 커스텀 CSS: 공통 → 뷰별 (Tailwind 로 표현 못 하는 부분만) -->
+    <link rel="stylesheet" href="./css/base.css">
+    <link rel="stylesheet" href="./css/trainer.css">
+    <link rel="stylesheet" href="./css/metronome.css">
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-amber-500 selection:text-zinc-950">
 
@@ -80,23 +83,25 @@
     <!-- Modals (result / nickname) -->
     <div data-partial="./html/modals.html"></div>
 
-    <!-- 로드 순서 주의: partials(뷰 주입) → 설정/상태 → 각 엔진 → 백엔드 → game → main.
+    <!-- 로드 순서 주의: partials(뷰 주입) → core(설정/상태/오디오/셸 UI) → 뷰별 모듈 → backend → main.
+         trainer-ui.js 는 core/ui.js 의 UI 네임스페이스를 확장하므로 반드시 그 뒤에 와야 합니다.
          main.js 는 PartialsReady 를 기다렸다가 초기화합니다. -->
-    <script src="./js/partials.js"></script>
-    <script src="./js/config.js"></script>
-    <script src="./js/backend-config.js"></script>
-    <script src="./js/state.js"></script>
-    <script src="./js/score.js"></script>
-    <script src="./js/ui.js"></script>
-    <script src="./js/audio.js"></script>
-    <script src="./js/pitch.js"></script>
-    <script src="./js/fretboard.js"></script>
-    <script src="./js/backend.js"></script>
-    <script src="./js/player.js"></script>
-    <script src="./js/leaderboard.js"></script>
-    <script src="./js/game.js"></script>
-    <script src="./js/metronome.js"></script>
-    <script src="./js/metronome-ui.js"></script>
+    <script src="./js/core/partials.js"></script>
+    <script src="./js/core/config.js"></script>
+    <script src="./js/core/state.js"></script>
+    <script src="./js/core/audio.js"></script>
+    <script src="./js/core/ui.js"></script>
+    <script src="./js/trainer/trainer-ui.js"></script>
+    <script src="./js/trainer/score.js"></script>
+    <script src="./js/trainer/pitch.js"></script>
+    <script src="./js/trainer/fretboard.js"></script>
+    <script src="./js/trainer/game.js"></script>
+    <script src="./js/metronome/metronome.js"></script>
+    <script src="./js/metronome/metronome-ui.js"></script>
+    <script src="./js/backend/backend-config.js"></script>
+    <script src="./js/backend/backend.js"></script>
+    <script src="./js/backend/player.js"></script>
+    <script src="./js/backend/leaderboard.js"></script>
     <script src="./js/main.js"></script>
 </body>
 </html>

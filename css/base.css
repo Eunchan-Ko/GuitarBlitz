@@ -1,0 +1,41 @@
+/* ===================================================================
+   공통 스타일 — 모든 뷰가 공유하는 전역 규칙만 담습니다.
+   뷰 전용 스타일은 css/trainer.css, css/metronome.css 로 분리.
+   (색/여백/타이포는 Tailwind 클래스로 마크업에서 처리)
+   =================================================================== */
+
+html {
+    /* 더블탭 확대 제거 (핀치 줌은 유지되어 접근성에 문제 없음) */
+    touch-action: manipulation;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    user-select: none;
+    word-break: keep-all; /* 한국어를 어절 단위로 줄바꿈 */
+}
+
+/* --- 스크롤바 ---------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #18181b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+    border-radius: 3px;
+}
+
+/* --- 모바일 ------------------------------------------------------ */
+@media (max-width: 640px) {
+    /* iOS 는 폰트 16px 미만 입력창에 포커스하면 화면을 자동 확대합니다.
+       Tailwind text-xs/sm 유틸리티보다 우선해야 해서 !important 사용 */
+    input[type="text"],
+    select {
+        font-size: 16px !important;
+    }
+}

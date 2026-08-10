@@ -1,17 +1,12 @@
 /* ===================================================================
-   UI 레이어 — DOM 읽기/쓰기는 전부 여기로 모읍니다.
-   게임 상태(gameState)를 참조하지 않는 순수 표현 계층이므로,
-   화면을 바꿀 때 다른 파일을 건드릴 필요가 없습니다.
+   지판 트레이너 화면 전용 UI — 설정 패널 / 마이크 표시 / 훈련 진행 /
+   결과 모달 / 랭킹 표. js/core/ui.js 가 만든 UI 네임스페이스에
+   Object.assign 으로 덧붙이므로 호출부는 전부 UI.xxx 그대로입니다.
+   로드 순서: core/ui.js 다음이어야 합니다 (index.html 참고).
    =================================================================== */
 
-const UI = (() => {
-    const cache = {};
-
-    // getElementById 캐시. 모든 대상은 index.html 에 정적으로 존재합니다.
-    function $(id) {
-        if (!cache[id]) cache[id] = document.getElementById(id);
-        return cache[id];
-    }
+Object.assign(UI, (() => {
+    const $ = UI.$;
 
     // 선택/비선택 상태에서 공통으로 쓰는 Tailwind 클래스 묶음
     const MODE_BTN_ON = "p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left";
@@ -20,57 +15,8 @@ const UI = (() => {
     const STRING_BTN_OFF = "flex-1 py-2 rounded-lg bg-zinc-800 text-zinc-400 font-bold text-xs border border-zinc-700";
     const BADGE_ON = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
     const BADGE_OFF = "px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700";
-    const TAB_ON = "flex-1 py-2.5 rounded-lg text-xs font-bold transition bg-amber-500 text-zinc-950 shadow";
-    const TAB_OFF = "flex-1 py-2.5 rounded-lg text-xs font-bold transition text-zinc-400 hover:text-zinc-200";
 
     return {
-        $,
-
-        /* --- 상단 탭 --------------------------------------------------- */
-        setActiveTab(name) {
-            const isTrainer = name === 'trainer';
-
-            $('view-trainer').classList.toggle('hidden', !isTrainer);
-            $('view-trainer').classList.toggle('flex', isTrainer);
-            $('view-metronome').classList.toggle('hidden', isTrainer);
-            $('view-metronome').classList.toggle('flex', !isTrainer);
-
-            $('tab-trainer').className = isTrainer ? TAB_ON : TAB_OFF;
-            $('tab-metronome').className = isTrainer ? TAB_OFF : TAB_ON;
-
-            $('tab-trainer').innerHTML = '<i class="fa-solid fa-guitar mr-1.5"></i> 지판 트레이너';
-            $('tab-metronome').innerHTML = '<i class="fa-solid fa-stopwatch mr-1.5"></i> 메트로놈';
-        },
-
-        /* --- 패널 전환 ------------------------------------------------ */
-        showTrainerPanel({ showPause = true } = {}) {
-            $('setup-panel').classList.add('hidden');
-            $('leaderboard-panel').classList.add('hidden');
-            $('trainer-panel').classList.remove('hidden');
-            $('trainer-panel').classList.add('flex');
-            $('btn-pause').classList.toggle('hidden', !showPause);
-            $('btn-stop-header').classList.remove('hidden');
-            // 훈련 중 탭 전환은 집중만 깨뜨리므로 탭 자체를 숨깁니다.
-            $('top-tabs').classList.add('hidden');
-        },
-
-        showSetupPanel() {
-            $('setup-panel').classList.remove('hidden');
-            $('leaderboard-panel').classList.remove('hidden');
-            $('trainer-panel').classList.add('hidden');
-            $('trainer-panel').classList.remove('flex');
-            $('btn-pause').classList.add('hidden');
-            $('btn-stop-header').classList.add('hidden');
-            $('top-tabs').classList.remove('hidden');
-        },
-
-        setPauseButton(isPaused) {
-            $('pause-text').innerText = isPaused ? "재개하기" : "일시정지";
-            $('pause-icon').className = isPaused
-                ? "fa-solid fa-play text-amber-400"
-                : "fa-solid fa-pause text-amber-400";
-        },
-
         /* --- 설정 패널 ------------------------------------------------ */
         setInputModeButtons(mode) {
             const isMic = mode === 'mic';
@@ -243,38 +189,6 @@ const UI = (() => {
             $('btn-submit-score').classList.add('hidden');
         },
 
-        /* --- 닉네임 ----------------------------------------------------- */
-        showNicknameModal(currentNickname) {
-            $('nickname-input').value = currentNickname || '';
-            this.setNicknameFeedback('', null);
-            $('nickname-modal').classList.remove('hidden');
-            $('nickname-modal').classList.add('flex');
-            $('nickname-input').focus();
-        },
-
-        hideNicknameModal() {
-            $('nickname-modal').classList.add('hidden');
-            $('nickname-modal').classList.remove('flex');
-        },
-
-        setNicknameFeedback(message, ok) {
-            const el = $('nickname-feedback');
-            el.innerText = message;
-            el.className = ok === null || message === ''
-                ? 'text-[11px] mt-2 h-4 text-zinc-500'
-                : `text-[11px] mt-2 h-4 font-medium ${ok ? 'text-emerald-400' : 'text-rose-400'}`;
-        },
-
-        setNicknameDisplay(nickname) {
-            const box = $('player-box');
-            if (!nickname) {
-                box.classList.add('hidden');
-                return;
-            }
-            box.classList.remove('hidden');
-            $('player-nickname').innerText = nickname;
-        },
-
         /* --- 랭킹 표 ---------------------------------------------------- */
         setLeaderboardScope(isGlobal) {
             const badge = $('leaderboard-scope');
@@ -330,4 +244,4 @@ const UI = (() => {
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[ch]);
     }
-})();
+})());
