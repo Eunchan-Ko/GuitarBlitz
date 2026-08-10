@@ -11,6 +11,14 @@ const MetronomeUI = (() => {
     let dragAccum = 0;       // 1 BPM 미만의 이동량을 모아두는 버퍼
     let tapResetTimer = null;
 
+    // 박 진행도 바늘 상태
+    let needleDir = 1;       // 이번 박의 진행 방향 (+1: 왼→오, -1: 오→왼). 박마다 뒤집습니다.
+    let needleAnchor = 0;    // 이번 박이 울리는 시각 (AudioContext 시계)
+    let needleDur = 0.6;     // 한 박 길이(초)
+    let needleRafId = null;
+    let needleDownbeatTimer = null;
+
+    const NEEDLE_SWING_DEG = 28;
     const DOT_BASE = 'rounded-full transition-all duration-75';
     const TOGGLE_ON = 'px-3 py-2 rounded-lg text-xs font-bold border border-amber-500 bg-amber-500/10 text-amber-400 transition';
     const TOGGLE_OFF = 'px-3 py-2 rounded-lg text-xs font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 transition';
@@ -47,6 +55,10 @@ const MetronomeUI = (() => {
             $('met-accent').className = Metronome.accentFirst ? TOGGLE_ON : TOGGLE_OFF;
             $('met-accent-state').innerText = Metronome.accentFirst ? '켬' : '끔';
 
+            // render() 는 onChange 마다 불리므로 여기서 바늘 루프를 붙였다 뗍니다.
+            if (Metronome.isPlaying) startNeedleLoop();
+            else stopNeedleLoop();
+
             this.renderBeatDots();
         },
 
@@ -62,8 +74,10 @@ const MetronomeUI = (() => {
             }
         },
 
-        flashBeat({ beat, isBeat, isDownbeat }) {
+        flashBeat({ beat, isBeat, isDownbeat, time }) {
             if (!isBeat) return;   // 쪼갠 박에서는 점을 움직이지 않습니다.
+
+            swingNeedle(time, isDownbeat);
 
             const dots = $('met-beat-dots').children;
             for (let i = 0; i < dots.length; i++) {
@@ -123,6 +137,58 @@ const MetronomeUI = (() => {
             $('met-tap-hint').innerText = text;
         }
     };
+
+    /* --- 박 진행도 바늘 ----------------------------------------------- */
+
+    /** 박이 울린 시점을 기준점으로 잡고 진행 방향을 뒤집습니다. */
+    function swingNeedle(time, isDownbeat) {
+        needleAnchor = time;
+        needleDur = 60 / Metronome.bpm;
+        needleDir = -needleDir;
+
+        if (!isDownbeat) return;
+
+        const needle = $('met-needle');
+        needle.classList.add('met-needle-downbeat');
+        clearTimeout(needleDownbeatTimer);
+        needleDownbeatTimer = setTimeout(() => needle.classList.remove('met-needle-downbeat'), 120);
+    }
+
+    function startNeedleLoop() {
+        if (needleRafId) return;
+
+        // 엔진이 AudioContext 시계로 소리를 예약하므로 진행률도 같은 시계로 재야
+        // 바늘과 소리가 어긋나지 않습니다. performance.now() 를 섞으면 안 됩니다.
+        const ctx = AudioEngine.context();
+        const needle = $('met-needle');
+        needleAnchor = ctx.currentTime;
+
+        const draw = () => {
+            if (!Metronome.isPlaying) { needleRafId = null; return; }
+
+            // 백그라운드 탭에서 rAF 가 멈췄다 돌아오면 progress 가 1로 클램프되어
+            // 바늘이 한쪽 끝에 잠깐 머물다가 다음 박에서 자연히 제자리를 찾습니다.
+            const progress = Math.max(0, Math.min(1, (ctx.currentTime - needleAnchor) / needleDur));
+            const angle = needleDir * NEEDLE_SWING_DEG * (progress * 2 - 1);
+            needle.style.transform = `translateX(-50%) rotate(${angle.toFixed(2)}deg)`;
+
+            needleRafId = requestAnimationFrame(draw);
+        };
+
+        needleRafId = requestAnimationFrame(draw);
+    }
+
+    function stopNeedleLoop() {
+        if (needleRafId) {
+            cancelAnimationFrame(needleRafId);
+            needleRafId = null;
+        }
+        clearTimeout(needleDownbeatTimer);
+
+        const needle = $('met-needle');
+        needle.classList.remove('met-needle-downbeat');
+        needle.style.transform = 'translateX(-50%) rotate(0deg)';
+    }
 
     /* --- 재생 / 미세 조정 -------------------------------------------- */
     function bindTransport() {

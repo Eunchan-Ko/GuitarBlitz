@@ -18,7 +18,8 @@ const Metronome = {
     volume: 0.7,
     isPlaying: false,
 
-    onBeat: null,          // ({ beat, tick, isDownbeat, isBeat }) => void
+    onBeat: null,          // ({ beat, tick, isDownbeat, isBeat, time }) => void
+                           //   time = 그 박이 울리도록 예약된 AudioContext 시각(초)
     onChange: null,        // () => void  (bpm/박자 등이 바뀔 때)
 
     _nextNoteTime: 0,
@@ -264,7 +265,9 @@ const Metronome = {
                     tick: latest.tick,
                     beat: Math.floor(latest.tick / this.subdivision),
                     isBeat: latest.tick % this.subdivision === 0,
-                    isDownbeat: latest.tick === 0
+                    isDownbeat: latest.tick === 0,
+                    // 화면 쪽에서 박 사이 진행률을 재려면 예약 시각이 필요합니다.
+                    time: latest.time
                 });
             }
 

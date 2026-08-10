@@ -12,3 +12,86 @@
 .met-slide:active {
     cursor: grabbing;
 }
+
+/* 박 진행도 바늘.
+   회전은 metronome-ui.js 의 rAF 루프가 매 프레임 직접 넣습니다.
+   여기에 transition 을 걸면 그 보간과 싸워서 움직임이 뚝뚝 끊깁니다. */
+#met-needle-box {
+    position: relative;
+}
+
+#met-needle {
+    position: absolute;
+    left: 50%;
+    /* 회전축을 비트 점 줄(1.25rem) 바로 위에 두어 점과 겹치지 않게 합니다.
+       남는 위쪽 여백은 기울어진 바늘 끝 추가 박스를 넘지 않을 만큼만 둡니다. */
+    bottom: 1.25rem;
+    height: calc(100% - 1.75rem);
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+    transform: translateX(-50%) rotate(0deg);
+    transform-origin: bottom center;
+}
+
+/* 바늘 끝(위쪽)의 추 */
+#met-needle::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-radius: 9999px;
+    background: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+    transform: translateX(-50%);
+}
+
+/* 회전축 피벗 — 바늘과 같이 돌면 안 되므로 박스에 붙입니다. */
+#met-needle-box::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 1.25rem;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #3f3f46;
+    border: 1px solid #52525b;
+    transform: translate(-50%, 50%);
+}
+
+/* 마디 첫 박에서 잠깐 밝아집니다 (JS 가 120ms 만 붙였다 뗍니다). */
+#met-needle.met-needle-downbeat {
+    background: linear-gradient(180deg, #fef3c7, #f59e0b);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.7);
+}
+
+#met-needle.met-needle-downbeat::before {
+    background: #fef3c7;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.9);
+}
+
+/* 한 줄로 굴러가는 동안 칩이 찌그러지지 않게 합니다 (안내 문단은 그대로 접힙니다). */
+#met-presets > div {
+    flex-shrink: 0;
+}
+
+/* 가로 스크롤바가 높이를 6px 먹어 화면을 밀어내므로 감춥니다 (스와이프로 넘깁니다). */
+#met-presets {
+    scrollbar-width: none;
+}
+
+#met-presets::-webkit-scrollbar {
+    display: none;
+}
+
+/* 비트 점은 바늘 박스 안 하단 중앙에 놓습니다. */
+#met-beat-dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.25rem;
+}
