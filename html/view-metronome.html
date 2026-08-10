@@ -2,7 +2,7 @@
 <!-- #view-metronome (index.html) 안에 주입됩니다. js/partials.js 참고 -->
 <!-- 스크롤 없이 한 화면에 들어가야 하므로 여백과 글자 크기를 최소로 유지합니다. -->
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-4">
 
     <!-- Left: Tempo control -->
     <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-5 shadow-xl">
@@ -34,18 +34,33 @@
             </div>
         </div>
 
-        <!-- 박 진행도 바늘 + 비트 점 (회전은 metronome-ui.js 의 rAF 루프가 담당) -->
-        <div id="met-needle-box" class="h-14 sm:h-24 mt-1.5 sm:mt-2">
-            <div id="met-needle"></div>
-            <div id="met-beat-dots" class="flex items-center justify-center gap-3"></div>
+        <!-- 박 진행 인디케이터. 테마 3종을 겹쳐 두고 활성 테마만 보입니다.
+             매 프레임 위치 갱신은 metronome-ui.js 의 rAF 루프 하나가 담당합니다. -->
+        <div id="met-indicator-box" class="h-8 sm:h-20 mt-1.5 sm:mt-2">
+            <div id="met-sweep" class="met-theme">
+                <div class="met-sweep-track"></div>
+                <div id="met-sweep-bar"></div>
+            </div>
+            <div id="met-pendulum" class="met-theme hidden">
+                <div id="met-needle"></div>
+            </div>
+            <div id="met-pulse" class="met-theme hidden">
+                <div id="met-pulse-dot"></div>
+            </div>
         </div>
 
-        <!-- Fine adjust -->
-        <div class="grid grid-cols-4 gap-2 mt-1.5 sm:mt-2">
-            <button id="met-minus-10" class="py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">−10</button>
-            <button id="met-minus" class="py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">−1</button>
-            <button id="met-plus" class="py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">+1</button>
-            <button id="met-plus-10" class="py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">+10</button>
+        <!-- 비트 점 + 박 수 조절. 점을 탭하면 강조/음소거가 순환합니다. -->
+        <div class="flex items-center justify-center gap-2 mt-0.5 sm:mt-1">
+            <button id="met-beats-minus" type="button" aria-label="한 마디의 박 수 줄이기"
+                class="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-sm font-bold transition">−</button>
+            <div id="met-beat-dots" class="flex items-center justify-center gap-1"></div>
+            <button id="met-beats-plus" type="button" aria-label="한 마디의 박 수 늘리기"
+                class="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-sm font-bold transition">+</button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 mt-0.5 sm:mt-1">
+            <p class="text-[10px] text-zinc-500">점을 탭해 강조/음소거</p>
+            <div id="met-indicator-theme" role="group" aria-label="박 진행 표시 스타일" class="flex gap-1"></div>
         </div>
 
         <!-- Tap / Transport -->
@@ -91,25 +106,12 @@
             </div>
         </div>
 
-        <!-- 좁은 화면에서는 액센트·볼륨을 두 칸으로 나란히 두어 세로 길이를 줄입니다. -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-1">
-            <div class="flex items-center justify-between gap-2">
-                <div>
-                    <div class="text-xs font-semibold text-zinc-300">첫 박 강조</div>
-                    <div class="hidden sm:block text-[10px] text-zinc-500 mt-0.5">마디 첫 박을 높은 소리로 구분</div>
-                </div>
-                <button id="met-accent" class="px-3 py-2 rounded-lg text-xs font-bold border border-amber-500 bg-amber-500/10 text-amber-400 transition">
-                    <span id="met-accent-state">켬</span>
-                </button>
+        <div>
+            <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
+                <span>볼륨</span>
+                <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
             </div>
-
-            <div class="flex flex-col justify-center">
-                <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
-                    <span>볼륨</span>
-                    <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
-                </div>
-                <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
-            </div>
+            <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
         </div>
 
         <!-- Presets -->
