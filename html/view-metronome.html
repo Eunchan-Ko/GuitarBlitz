@@ -14,38 +14,41 @@
 
         <!-- Drag anywhere on this panel to change tempo -->
         <div id="met-slide-track" class="met-slide relative rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-2 sm:py-3 cursor-grab shadow-inner">
+            <!-- 박 진행 인디케이터. 테마 3종을 겹쳐 두고 활성 테마만 보입니다.
+                 카드 안쪽 전체 폭을 쓰므로 스윕 바가 BPM 바 폭 그대로 왕복합니다.
+                 매 프레임 위치 갱신은 metronome-ui.js 의 rAF 루프 하나가 담당합니다. -->
+            <div id="met-indicator-box" class="h-16 sm:h-24">
+                <div id="met-sweep" class="met-theme">
+                    <div class="met-sweep-track"></div>
+                    <div id="met-sweep-bar"></div>
+                </div>
+                <div id="met-pendulum" class="met-theme hidden">
+                    <div id="met-needle"></div>
+                </div>
+                <div id="met-pulse" class="met-theme hidden">
+                    <div id="met-pulse-dot"></div>
+                </div>
+            </div>
+
+            <!-- BPM 진행 바. transition 을 걸면 빠르게 드래그할 때 보간이 계속
+                 다시 시작되어 손보다 늦게 따라오므로 즉시 반영합니다. -->
+            <div class="mt-1 sm:mt-1.5 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div id="met-range-fill" class="h-full bg-gradient-to-r from-amber-500 to-orange-500" style="width: 26%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-zinc-600 font-mono mt-0.5 leading-tight">
+                <span>30</span><span>300</span>
+            </div>
+
             <div class="text-center">
-                <div id="met-bpm" class="text-5xl sm:text-7xl font-black text-zinc-100 leading-none tracking-tighter">100</div>
-                <div class="text-[11px] font-bold text-zinc-500 mt-1 sm:mt-1.5 uppercase tracking-widest">
+                <div id="met-bpm" class="text-4xl sm:text-6xl font-black text-zinc-100 leading-none tracking-tighter">100</div>
+                <div class="text-[11px] font-bold text-zinc-500 mt-1 uppercase tracking-widest leading-tight">
                     BPM · <span id="met-tempo-name" class="text-amber-400">Andante</span>
                 </div>
-                <p class="hidden sm:flex text-[11px] text-zinc-500 mt-2 items-center justify-center gap-1.5">
+                <p class="hidden sm:flex text-[11px] text-zinc-500 mt-1.5 items-center justify-center gap-1.5">
                     <i class="fa-solid fa-arrows-left-right text-amber-500/70"></i>
                     좌우로 드래그하거나 <kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">←</kbd>
                     <kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px]">→</kbd> 키로 조절
                 </p>
-            </div>
-
-            <div class="mt-2 sm:mt-2.5 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                <div id="met-range-fill" class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-75" style="width: 26%"></div>
-            </div>
-            <div class="flex justify-between text-[10px] text-zinc-600 font-mono mt-1">
-                <span>30</span><span>300</span>
-            </div>
-        </div>
-
-        <!-- 박 진행 인디케이터. 테마 3종을 겹쳐 두고 활성 테마만 보입니다.
-             매 프레임 위치 갱신은 metronome-ui.js 의 rAF 루프 하나가 담당합니다. -->
-        <div id="met-indicator-box" class="h-8 sm:h-20 mt-1.5 sm:mt-2">
-            <div id="met-sweep" class="met-theme">
-                <div class="met-sweep-track"></div>
-                <div id="met-sweep-bar"></div>
-            </div>
-            <div id="met-pendulum" class="met-theme hidden">
-                <div id="met-needle"></div>
-            </div>
-            <div id="met-pulse" class="met-theme hidden">
-                <div id="met-pulse-dot"></div>
             </div>
         </div>
 

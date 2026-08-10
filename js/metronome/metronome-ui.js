@@ -39,10 +39,10 @@ const MetronomeUI = (() => {
     // 진행률(0~1)을 활성 테마의 그림으로 옮기는 함수. rAF 루프가 이 중 하나만 호출합니다.
     const RENDER_THEME = {
         sweep(progress) {
-            // 방향이 박마다 뒤집히므로 3%~97% 사이를 왕복합니다.
-            // I자 캡(가로 14px)까지 트랙 안에 들어오도록 양쪽을 조금 남겨둡니다.
+            // 방향이 박마다 뒤집히므로 트랙의 양 끝을 왕복합니다.
+            // 0~1 만 넘기고 캡 폭 보정은 CSS(--met-cap)가 합니다.
             const t = beatDir > 0 ? progress : 1 - progress;
-            $('met-sweep-bar').style.left = `${(3 + t * 94).toFixed(2)}%`;
+            $('met-sweep-bar').style.setProperty('--met-sweep-t', t.toFixed(4));
         },
         pendulum(progress) {
             const angle = beatDir * NEEDLE_SWING_DEG * (progress * 2 - 1);
@@ -224,7 +224,7 @@ const MetronomeUI = (() => {
             $(el).classList.remove('met-pop', 'met-beat-accent');
         });
 
-        $('met-sweep-bar').style.left = '50%';
+        $('met-sweep-bar').style.setProperty('--met-sweep-t', '0.5');
         $('met-needle').style.transform = 'translateX(-50%) rotate(0deg)';
         $('met-pulse-dot').style.transform = 'translate(-50%, -50%) scale(0.6)';
     }

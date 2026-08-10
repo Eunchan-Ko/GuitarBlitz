@@ -41,10 +41,15 @@
     transform: translateY(-50%);
 }
 
+/* --met-sweep-t (0~1) 는 metronome-ui.js 의 rAF 루프가 매 프레임 넣는 진행률입니다.
+   캡 절반씩만 접어두므로 바 중심이 트랙의 양 끝점에 정확히 닿습니다
+   (캡 바깥쪽 끝 = 트랙 끝). 캡 폭은 --met-cap 한 곳에서만 정의합니다. */
 #met-sweep-bar {
+    --met-cap: 14px;
+    --met-sweep-t: 0.5;
     position: absolute;
     top: 50%;
-    left: 50%;
+    left: calc(var(--met-cap) / 2 + var(--met-sweep-t) * (100% - var(--met-cap)));
     width: 4px;
     height: 68%;
     border-radius: 2px;
@@ -58,7 +63,7 @@
     content: '';
     position: absolute;
     left: 50%;
-    width: 14px;
+    width: var(--met-cap);
     height: 3px;
     border-radius: 2px;
     background: #fbbf24;
