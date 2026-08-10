@@ -321,6 +321,11 @@ const MetronomeUI = (() => {
 
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
+
+        // 비트 점 행은 카드 안(=드래그 표면)에 있습니다. 점이나 ±를 누르다 손끝이
+        // 몇 px 흔들려도 BPM 이 바뀌지 않게 여기서는 드래그를 시작하지 않습니다.
+        // pointerdown 만 막으므로 click(점 순환 / 박 수 조절)은 그대로 동작합니다.
+        $('met-beat-row').addEventListener('pointerdown', (e) => e.stopPropagation());
     }
 
     /* --- 박자표 / 쪼갬 / 볼륨 ---------------------------------------- */
