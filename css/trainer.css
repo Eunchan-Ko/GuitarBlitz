@@ -1,35 +1,7 @@
 /* ===================================================================
-   커스텀 스타일 — Tailwind 유틸리티로 표현할 수 없는 부분만 담습니다.
-   (색/여백/타이포는 Tailwind 클래스로 마크업에서 처리)
+   지판 트레이너 뷰 전용 스타일 (html/view-trainer.html)
    =================================================================== */
 
-html {
-    /* 더블탭 확대 제거 (핀치 줌은 유지되어 접근성에 문제 없음) */
-    touch-action: manipulation;
-}
-
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    user-select: none;
-    word-break: keep-all; /* 한국어를 어절 단위로 줄바꿈 */
-}
-
-/* --- 스크롤바 ---------------------------------------------------- */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #18181b;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #3f3f46;
-    border-radius: 3px;
-}
-
-/* --- 지판 -------------------------------------------------------- */
 .fret-board-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -94,20 +66,7 @@ body {
     inset: -2px -8px;
 }
 
-/* --- 메트로놈 ---------------------------------------------------- */
-
-/* 좌우 드래그로 템포를 조절하는 영역.
-   touch-action: none 이 없으면 모바일에서 브라우저 스크롤이 제스처를 가로챕니다. */
-.met-slide {
-    touch-action: none;
-    user-select: none;
-}
-
-.met-slide:active {
-    cursor: grabbing;
-}
-
-/* --- 애니메이션 -------------------------------------------------- */
+/* --- 목표 프렛 강조 애니메이션 ------------------------------------ */
 @keyframes targetPulse {
     0% {
         transform: scale(1);
@@ -125,14 +84,4 @@ body {
 
 .active-pulse {
     animation: targetPulse 1.2s infinite;
-}
-
-/* --- 모바일 ------------------------------------------------------ */
-@media (max-width: 640px) {
-    /* iOS 는 폰트 16px 미만 입력창에 포커스하면 화면을 자동 확대합니다.
-       Tailwind text-xs/sm 유틸리티보다 우선해야 해서 !important 사용 */
-    input[type="text"],
-    select {
-        font-size: 16px !important;
-    }
 }

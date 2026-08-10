@@ -90,7 +90,7 @@
                     <!-- Fret Limit & Speed -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">최대 프렛 범위</label>
+                            <label for="fret-range-select" class="block text-xs font-semibold text-zinc-300 mb-1.5">최대 프렛 범위</label>
                             <select id="fret-range-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
                                 <option value="12" selected>1 ~ 12 프렛 (기본)</option>
                                 <option value="15">1 ~ 15 프렛 (확장)</option>
@@ -98,7 +98,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">문제당 제한 시간 (초)</label>
+                            <label for="timer-limit-select" class="block text-xs font-semibold text-zinc-300 mb-1.5">문제당 제한 시간 (초)</label>
                             <select id="timer-limit-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
                                 <option value="3" selected>3초 (순발력 훈련)</option>
                                 <option value="2">2초 (동물적 반사)</option>
@@ -150,11 +150,11 @@
                 <!-- Detected Note Live Card -->
                 <div class="flex items-center justify-between bg-zinc-900/80 p-3 rounded-lg border border-zinc-800">
                     <div>
-                        <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">감지된 음이름</div>
+                        <div class="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">감지된 음이름</div>
                         <div id="precheck-note-name" class="text-2xl font-black text-amber-400">--</div>
                     </div>
                     <div class="text-right">
-                        <div class="text-[10px] text-zinc-500 font-bold">주파수 (Hz)</div>
+                        <div class="text-[10px] text-zinc-400 font-bold">주파수 (Hz)</div>
                         <div id="precheck-freq" class="text-sm font-mono text-zinc-200">0.0 Hz</div>
                     </div>
                 </div>
@@ -167,8 +167,8 @@
                         <span>소프트웨어 증폭 (Gain Boost)</span>
                         <span id="gain-val-label" class="text-amber-400 font-bold">x5.0 (생기타)</span>
                     </div>
-                    <input type="range" id="gain-slider" min="1" max="20" step="0.5" value="5" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
-                    <p class="text-[10px] text-zinc-500 mt-1">앰프 없이 작게 들리는 생기타 연주 시 높여주세요.</p>
+                    <input type="range" id="gain-slider" aria-label="소프트웨어 증폭 (Gain Boost)" min="1" max="20" step="0.5" value="5" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                    <p class="text-[10px] text-zinc-400 mt-1">앰프 없이 작게 들리는 생기타 연주 시 높여주세요.</p>
                 </div>
 
                 <div>
@@ -176,7 +176,7 @@
                         <span>수음 민감도 (노이즈 문턱값)</span>
                         <span id="thres-val-label" class="text-amber-400 font-bold">민감함 (0.015)</span>
                     </div>
-                    <input type="range" id="thres-slider" min="0.002" max="0.05" step="0.001" value="0.015" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                    <input type="range" id="thres-slider" aria-label="수음 민감도 (노이즈 문턱값)" min="0.002" max="0.05" step="0.001" value="0.015" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
                 </div>
             </div>
         </div>
@@ -293,14 +293,14 @@
         </h3>
         <div class="flex items-center gap-2">
             <span id="leaderboard-scope" class="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">이 브라우저 기록</span>
-            <button id="btn-refresh-leaderboard" class="text-[11px] text-zinc-400 hover:text-amber-400 border border-zinc-700 hover:border-amber-500/50 px-2 py-1 rounded-lg transition">
+            <button id="btn-refresh-leaderboard" aria-label="랭킹 새로고침" class="text-[11px] text-zinc-400 hover:text-amber-400 border border-zinc-700 hover:border-amber-500/50 px-2 py-1 rounded-lg transition">
                 <i class="fa-solid fa-rotate-right"></i>
             </button>
         </div>
     </div>
-    <p id="leaderboard-status" class="text-[11px] text-zinc-500 mb-3 min-h-[16px]"></p>
+    <p id="leaderboard-status" class="text-[11px] text-zinc-400 mb-3 min-h-[16px]"></p>
 
-    <div class="grid grid-cols-12 gap-2 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600 border-b border-zinc-800">
+    <div class="grid grid-cols-12 gap-2 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-800">
         <div class="col-span-2">순위</div>
         <div class="col-span-5">닉네임</div>
         <div class="col-span-3 text-right">점수</div>

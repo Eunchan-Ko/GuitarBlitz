@@ -79,6 +79,8 @@ const Fretboard = {
 
             fretBtn.setAttribute('data-string', stringConfig.number);
             fretBtn.setAttribute('data-fret', f);
+            // 음이름을 가린 모드에서는 점만 보이므로 스크린리더용 이름을 붙입니다.
+            fretBtn.setAttribute('aria-label', `${stringConfig.number}번줄 ${f}프렛`);
 
             if (showNoteNames) {
                 fretBtn.innerText = NOTE_NAMES[(stringConfig.openPitch + f) % 12];
