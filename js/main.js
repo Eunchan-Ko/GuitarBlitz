@@ -1,9 +1,12 @@
 /* ===================================================================
    진입점 — DOM 이벤트를 각 모듈에 연결하고 백엔드를 초기화합니다.
    HTML 에는 onclick 을 두지 않으므로, 새 버튼을 붙일 때는 여기만 봅니다.
+
+   뷰 마크업은 js/partials.js 가 html/ partial 을 비동기로 주입하므로,
+   DOMContentLoaded 가 아니라 주입 완료(PartialsReady)를 기다립니다.
    =================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
+PartialsReady.then(() => {
 
     let lastResult = null;          // 방금 끝난 랭크전 결과
     let afterNickname = null;       // 닉네임 등록 후 이어서 할 일

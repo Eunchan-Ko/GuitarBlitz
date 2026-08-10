@@ -38,7 +38,7 @@ Auto-correlation 알고리즘 기반 정밀 피치 감지.
         ```git clone https://github.com/Eunchan-Ko/GuitarBlitz.git```
 
 
-    2. index.html 파일을 웹 브라우저(Chrome, Edge, Safari 등)로 실행합니다.
+    2. 로컬 서버로 띄운 뒤 브라우저(Chrome, Edge, Safari 등)로 접속합니다. (아래 [로컬에서 실행](#로컬에서-실행) 참고)
     3. [사전 마이크 수음 테스트]를 켜고 생기타를 튕겨 게인 및 민감도를 조절합니다.
     4. [지판 반사신경 훈련 시작하기]를 눌러 3초 안에 지판을 스나이핑하세요!
 ## 🛠️ 기술 스택 (Tech Stack)
@@ -54,15 +54,14 @@ Auto-correlation 알고리즘 기반 정밀 피치 감지.
 
 ## 로컬에서 실행
 
-`index.html` 파일을 브라우저로 열면 끝입니다. 별도 빌드 과정이 없습니다. 
-
-간단한 로컬 서버로 띄우고 싶다면:
+별도 빌드 과정은 없지만, 뷰 마크업(`html/` 디렉터리)을 `fetch`로 불러오기 때문에
+**로컬 서버가 필요합니다**. `index.html`을 `file://`로 직접 열면 CORS 정책 때문에 화면이 뜨지 않습니다.
 
 ```bash
 python -m http.server 8000
 ```
 
-이후 http://localhost:8000 접속.
+이후 http://localhost:8000 접속. (VS Code Live Server 등 아무 정적 서버나 가능)
 
 ## 🏆 랭크전 / 연습 모드
 

@@ -71,7 +71,9 @@ const Fretboard = {
     _renderFretButtons(board, stringConfig, topPos, maxFret, fretWidthPct, showNoteNames, onFretClick) {
         for (let f = 1; f <= maxFret; f++) {
             const fretBtn = document.createElement('button');
-            fretBtn.className = 'fret-target-btn absolute w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 hover:border-amber-400 flex items-center justify-center text-[10px] font-bold text-zinc-300 transform -translate-x-1/2 -translate-y-1/2 z-20 shadow';
+            // 중앙 정렬 transform 은 hover/active 확대와 충돌하지 않도록
+            // Tailwind 유틸리티 대신 style.css 의 .fret-target-btn 이 소유합니다.
+            fretBtn.className = 'fret-target-btn absolute w-7 h-7 rounded-full bg-zinc-900 border border-zinc-700 hover:border-amber-400 flex items-center justify-center text-[10px] font-bold text-zinc-300 z-20 shadow';
             fretBtn.style.left = `${f * fretWidthPct}%`;
             fretBtn.style.top = `${topPos}px`;
 

@@ -1,0 +1,341 @@
+<!-- ============ VIEW: 지판 트레이너 ============ -->
+<!-- #view-trainer (index.html) 안에 주입됩니다. js/partials.js 참고 -->
+
+<!-- 1. SETUP & MIC PRE-CHECK CARD (Shown when idle) -->
+<div id="setup-panel" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left: Settings Form -->
+    <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between gap-6">
+        <div>
+            <h2 class="text-xl font-bold mb-1 text-zinc-100 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-amber-500"></i> 트레이닝 환경 설정
+            </h2>
+            <p class="hidden sm:block text-xs text-zinc-400 mb-5">계산하는 습관을 깨고 3초 안에 직관적으로 지판을 짚으세요.</p>
+
+            <div class="space-y-4">
+                <!-- Game Mode Selection -->
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-2">게임 모드</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="game-mode-rank" class="p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left">
+                            <div class="p-2 bg-amber-500/20 rounded-lg text-amber-400 text-lg">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm">🏆 랭크전 (60초)</div>
+                                <div class="hidden sm:block text-[11px] text-zinc-400 mt-0.5">점수를 겨루고 랭킹에 등록하기</div>
+                            </div>
+                        </button>
+                        <button type="button" id="game-mode-practice" class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left">
+                            <div class="p-2 bg-zinc-800 rounded-lg text-zinc-300 text-lg">
+                                <i class="fa-solid fa-infinity"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-zinc-200">🎯 연습 모드</div>
+                                <div class="hidden sm:block text-[11px] text-zinc-400 mt-0.5">시간 제한 없이 원하는 조건으로</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Mode Selection -->
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-2">입력 방식 선택</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="mode-btn-mic" class="p-3.5 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-400 flex items-center gap-3 transition font-medium text-xs text-left">
+                            <div class="p-2 bg-amber-500/20 rounded-lg text-amber-400 text-lg">
+                                <i class="fa-solid fa-microphone-lines"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm">🎙️ 실물 기타 (마이크)</div>
+                                <div class="hidden sm:block text-[11px] text-zinc-400 mt-0.5">앰프/생기타 소리를 실시간 연주해 맞추기</div>
+                            </div>
+                        </button>
+                        <button type="button" id="mode-btn-touch" class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 flex items-center gap-3 transition font-medium text-xs text-left">
+                            <div class="p-2 bg-zinc-800 rounded-lg text-zinc-300 text-lg">
+                                <i class="fa-solid fa-hand-pointer"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-zinc-200">👆 화면 터치/클릭</div>
+                                <div class="hidden sm:block text-[11px] text-zinc-400 mt-0.5">화면 지판의 프렛을 직접 클릭하여 맞추기</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rank mode locks the settings below so scores stay comparable -->
+                <div id="rank-fixed-notice" class="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/80 leading-relaxed">
+                    <i class="fa-solid fa-lock text-amber-400 mt-0.5"></i>
+                    <span>
+                        랭크전은 공정한 비교를 위해 <b class="text-amber-300">6줄 전체 · 1~12프렛 · 문제당 3초</b>로 고정되고,
+                        <b class="text-amber-300">지판의 음이름도 가려집니다</b>(입력 방식 무관).
+                        자유롭게 바꾸려면 연습 모드를 선택하세요.
+                    </span>
+                </div>
+
+                <div id="practice-settings" class="space-y-4 opacity-40 pointer-events-none transition-opacity">
+                    <!-- Target Strings Range (기본값: 1~6번줄 모두 선택) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-300 mb-2">훈련 대상 기타 줄</label>
+                        <div id="string-selector" class="flex items-center gap-2">
+                            <button id="str-btn-6" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">6줄(E)</button>
+                            <button id="str-btn-5" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">5줄(A)</button>
+                            <button id="str-btn-4" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">4줄(D)</button>
+                            <button id="str-btn-3" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">3줄(G)</button>
+                            <button id="str-btn-2" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">2줄(B)</button>
+                            <button id="str-btn-1" class="flex-1 py-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs border border-amber-400 shadow">1줄(E)</button>
+                        </div>
+                    </div>
+
+                    <!-- Fret Limit & Speed -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">최대 프렛 범위</label>
+                            <select id="fret-range-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                <option value="12" selected>1 ~ 12 프렛 (기본)</option>
+                                <option value="15">1 ~ 15 프렛 (확장)</option>
+                                <option value="7">1 ~ 7 프렛 (초급)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-300 mb-1.5">문제당 제한 시간 (초)</label>
+                            <select id="timer-limit-select" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                <option value="3" selected>3초 (순발력 훈련)</option>
+                                <option value="2">2초 (동물적 반사)</option>
+                                <option value="5">5초 (여유 있게)</option>
+                                <option value="0">제한없음 (무제한)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Training Action Button -->
+        <button id="btn-start" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-play text-lg"></i>
+            <span id="btn-start-label">60초 랭크전 시작하기</span>
+        </button>
+    </div>
+
+    <!-- Right: Pre-Check Mic Testing Panel -->
+    <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col justify-between">
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                    <i class="fa-solid fa-microphone text-amber-400"></i> 사전 마이크 수음 테스트
+                </h3>
+                <span id="precheck-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">
+                    대기 중
+                </span>
+            </div>
+            <p class="hidden sm:block text-[11px] text-zinc-400 mb-4">
+                시작 전 생기타 소리가 정상 수음되는지 테스트하세요. 빨간 기준선을 넘으면 정상 인식됩니다.
+            </p>
+
+            <!-- Mic Signal Meter -->
+            <div class="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
+                <div>
+                    <div class="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>실시간 입력 볼륨 (RMS)</span>
+                        <span id="vol-text-val">0%</span>
+                    </div>
+                    <div class="relative w-full h-4 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
+                        <div id="vol-bar-fill" class="h-full bg-emerald-500 w-0 transition-all duration-75"></div>
+                        <!-- Threshold Line -->
+                        <div id="threshold-line" class="absolute top-0 bottom-0 w-1 bg-amber-500 shadow" style="left: 15%;"></div>
+                    </div>
+                </div>
+
+                <!-- Detected Note Live Card -->
+                <div class="flex items-center justify-between bg-zinc-900/80 p-3 rounded-lg border border-zinc-800">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">감지된 음이름</div>
+                        <div id="precheck-note-name" class="text-2xl font-black text-amber-400">--</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-zinc-500 font-bold">주파수 (Hz)</div>
+                        <div id="precheck-freq" class="text-sm font-mono text-zinc-200">0.0 Hz</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gain Boost & Sensitivity Sliders -->
+            <div class="mt-4 space-y-3">
+                <div>
+                    <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
+                        <span>소프트웨어 증폭 (Gain Boost)</span>
+                        <span id="gain-val-label" class="text-amber-400 font-bold">x5.0 (생기타)</span>
+                    </div>
+                    <input type="range" id="gain-slider" min="1" max="20" step="0.5" value="5" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                    <p class="text-[10px] text-zinc-500 mt-1">앰프 없이 작게 들리는 생기타 연주 시 높여주세요.</p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
+                        <span>수음 민감도 (노이즈 문턱값)</span>
+                        <span id="thres-val-label" class="text-amber-400 font-bold">민감함 (0.015)</span>
+                    </div>
+                    <input type="range" id="thres-slider" min="0.002" max="0.05" step="0.001" value="0.015" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-zinc-800/80">
+            <button id="btn-toggle-mic" class="w-full py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-power-off text-amber-400"></i>
+                <span id="mic-toggle-text">마이크 수음 테스트 켜기</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. GAMEPLAY TRAINER PANEL (Hidden when idle) -->
+<div id="trainer-panel" class="hidden flex-col gap-5">
+
+    <!-- Top Target Question Display Card -->
+    <div class="bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+        <!-- Progress Timer Bar (per question) -->
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-zinc-800">
+            <div id="timer-bar" class="h-full bg-amber-500 transition-all duration-100 ease-linear w-full"></div>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
+
+            <!-- Question Prompt -->
+            <div class="flex items-center gap-5">
+                <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-3xl font-black shadow-inner">
+                    <span id="target-note-display">G</span>
+                </div>
+                <div>
+                    <div class="text-xs font-bold uppercase tracking-widest text-amber-400 mb-0.5" id="target-subtitle">
+                        목표 위치 짚기
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-black text-zinc-100 tracking-tight" id="target-prompt-text">
+                        <span class="text-amber-400 font-bold">4번 줄</span>의 <span class="text-amber-400">G</span> 음을 연주하세요!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Realtime Detected Note Card in Trainer Panel -->
+            <div class="flex items-center gap-3 bg-zinc-950/90 px-4 py-2.5 rounded-xl border border-zinc-800/80 shadow-inner">
+                <div class="text-left">
+                    <div class="text-[10px] text-zinc-400 font-bold uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-microphone text-amber-400 text-[10px]"></i> 실시간 연주된 음
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="trainer-live-note" class="text-2xl font-black text-amber-400">--</span>
+                        <span id="trainer-live-freq" class="text-xs font-mono text-zinc-400">0.0 Hz</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Stats Badge & Controls -->
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <!-- Session countdown (rank mode only) -->
+                <div id="session-box" class="hidden flex-col items-center px-4 py-2 bg-amber-500/10 rounded-xl border border-amber-500/30 min-w-[86px]">
+                    <div class="text-[10px] text-amber-400/80 font-bold uppercase">남은 시간</div>
+                    <div class="text-xl font-black text-amber-400"><span id="session-remaining">60</span><span class="text-xs">s</span></div>
+                    <div class="w-full h-1 bg-amber-900/40 rounded-full overflow-hidden mt-1">
+                        <div id="session-bar" class="h-full bg-amber-400 transition-all duration-100 ease-linear" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="text-center px-4 py-2 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">점수</div>
+                    <div id="score-points" class="text-xl font-black text-zinc-100">0</div>
+                </div>
+                <div class="text-center px-4 py-2 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">연속 성공</div>
+                    <div id="score-combo" class="text-xl font-black text-emerald-400">0</div>
+                </div>
+                <div class="text-center px-4 py-2 bg-zinc-950/80 rounded-xl border border-zinc-800">
+                    <div class="text-[10px] text-zinc-500 font-bold uppercase">정답률</div>
+                    <div id="score-accuracy" class="text-xl font-black text-amber-400">100%</div>
+                </div>
+                <button id="btn-stop-trainer" class="px-3 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition" title="메인으로 정지">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guitar Fretboard Rendering Wrapper -->
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 shadow-2xl relative">
+        <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                <i class="fa-solid fa-guitar text-amber-500"></i> 일렉기타 지판 (1 ~ 12/15 Fret)
+            </span>
+            <span id="mic-status-hint" class="text-[11px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                🎙️ 마이크 수음 대기 중...
+            </span>
+        </div>
+
+        <!-- Scrollable Fretboard Container -->
+        <div class="fret-board-container relative rounded-xl border border-zinc-800 bg-zinc-950 py-4 shadow-inner">
+            <div id="fretboard" class="relative min-w-[760px] h-[220px]">
+                <!-- Rendered by js/fretboard.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Immediate Feedback Message Bar -->
+    <div id="feedback-bar" class="hidden p-4 rounded-xl font-bold text-center text-sm transition">
+        <!-- Dynamic feedback text -->
+    </div>
+</div>
+
+<!-- 3. LEADERBOARD -->
+<div id="leaderboard-panel" class="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-xl">
+    <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2">
+            <i class="fa-solid fa-ranking-star text-amber-400"></i> 랭킹 (개인 최고 기록)
+        </h3>
+        <div class="flex items-center gap-2">
+            <span id="leaderboard-scope" class="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700">이 브라우저 기록</span>
+            <button id="btn-refresh-leaderboard" class="text-[11px] text-zinc-400 hover:text-amber-400 border border-zinc-700 hover:border-amber-500/50 px-2 py-1 rounded-lg transition">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+    <p id="leaderboard-status" class="text-[11px] text-zinc-500 mb-3 min-h-[16px]"></p>
+
+    <div class="grid grid-cols-12 gap-2 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600 border-b border-zinc-800">
+        <div class="col-span-2">순위</div>
+        <div class="col-span-5">닉네임</div>
+        <div class="col-span-3 text-right">점수</div>
+        <div class="col-span-2 text-right">최고 콤보</div>
+    </div>
+    <div id="leaderboard-body" class="mt-1 space-y-0.5"></div>
+</div>
+
+<!-- Tips Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60 flex items-start gap-3">
+        <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400"><i class="fa-solid fa-microphone-lines"></i></div>
+        <div>
+            <h4 class="text-xs font-bold text-zinc-200">동일 Hz 음 수음 처리 안내</h4>
+            <p class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                마이크는 줄을 구분할 수 없고 음고만 판별합니다 (6번줄 10F D = 5번줄 5F D). 제시된 목표 음이름(D)을 연주하면 유저가 올바른 위치를 짚은 것으로 즉시 인지됩니다.
+            </p>
+        </div>
+    </div>
+    <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60 flex items-start gap-3">
+        <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400"><i class="fa-solid fa-bolt"></i></div>
+        <div>
+            <h4 class="text-xs font-bold text-zinc-200">점수는 이렇게 계산됩니다</h4>
+            <p class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                정답 100점 + 빨리 짚을수록 속도 보너스 최대 50점, 여기에 콤보 배율(최대 x2.0)이 곱해집니다. 콤보는 오답이나 시간 초과에 끊깁니다.
+            </p>
+        </div>
+    </div>
+    <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/60 flex items-start gap-3">
+        <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400"><i class="fa-solid fa-volume-high"></i></div>
+        <div>
+            <h4 class="text-xs font-bold text-zinc-200">생기타 수음 팁</h4>
+            <p class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                앰프가 없다면 스마트폰/마이크를 기타 바디에 가까이 대고, 증폭(Gain)을 x5 이상으로 올려서 튕겨보세요.
+            </p>
+        </div>
+    </div>
+</div>
