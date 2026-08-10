@@ -128,10 +128,15 @@ Object.assign(UI, (() => {
             $('game-mode-practice').className = isRank ? MODE_BTN_OFF : MODE_BTN_ON;
 
             // 랭크전은 모두 같은 조건이어야 비교가 되므로 설정을 잠급니다.
+            // pointer-events-none 은 키보드 Tab 을 못 막으므로 컨트롤을 실제로
+            // disabled 처리하고, 잠긴 블록은 보조기기에서도 숨깁니다.
             $('rank-fixed-notice').classList.toggle('hidden', !isRank);
             $('practice-settings').classList.toggle('opacity-40', isRank);
             $('practice-settings').classList.toggle('pointer-events-none', isRank);
+            if (isRank) $('practice-settings').setAttribute('aria-hidden', 'true');
+            else $('practice-settings').removeAttribute('aria-hidden');
 
+            for (let n = 1; n <= 6; n++) $(`str-btn-${n}`).disabled = isRank;
             $('fret-range-select').disabled = isRank;
             $('timer-limit-select').disabled = isRank;
 
@@ -202,7 +207,7 @@ Object.assign(UI, (() => {
 
             if (!rows.length) {
                 const empty = document.createElement('div');
-                empty.className = 'py-8 text-center text-xs text-zinc-500';
+                empty.className = 'py-8 text-center text-xs text-zinc-400';
                 empty.innerText = '아직 등록된 기록이 없습니다. 첫 주자가 되어보세요!';
                 body.appendChild(empty);
                 return;
@@ -217,10 +222,10 @@ Object.assign(UI, (() => {
                 const isMine = Player.nickname && row.nickname === Player.nickname;
 
                 line.innerHTML = `
-                    <div class="col-span-2 font-black ${rank <= 3 ? 'text-amber-400' : 'text-zinc-500'}">${rankLabel(rank)}</div>
+                    <div class="col-span-2 font-black ${rank <= 3 ? 'text-amber-400' : 'text-zinc-400'}">${rankLabel(rank)}</div>
                     <div class="col-span-5 font-bold truncate ${isMine ? 'text-emerald-400' : 'text-zinc-200'}">${escapeHtml(row.nickname)}${isMine ? ' <span class="text-[10px] font-normal">(나)</span>' : ''}</div>
                     <div class="col-span-3 text-right font-mono font-bold text-zinc-100">${row.score.toLocaleString()}</div>
-                    <div class="col-span-2 text-right font-mono text-zinc-500">${row.maxCombo}콤보</div>
+                    <div class="col-span-2 text-right font-mono text-zinc-400">${row.maxCombo}콤보</div>
                 `;
                 body.appendChild(line);
             });
