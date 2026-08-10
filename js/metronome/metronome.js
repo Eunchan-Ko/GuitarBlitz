@@ -9,16 +9,22 @@
 
 const PRESETS_STORAGE_KEY = 'guitarblitz.metronomePresets';
 const VISUAL_QUEUE_LIMIT = 64;
+const BEAT_STATE_ORDER = ['normal', 'accent', 'mute'];
 
 const Metronome = {
     bpm: METRONOME_CONFIG.defaultBpm,
     beatsPerMeasure: 4,
     subdivision: 1,        // 1=4분, 2=8분, 3=셋잇단, 4=16분
-    accentFirst: true,
+
+    // 박별 상태: 'accent'(강조) | 'normal'(보통) | 'mute'(음소거).
+    // 기본값은 마디 첫 박만 강조 (기존 "첫 박 강조 켬" 과 같은 소리).
+    beatStates: ['accent', 'normal', 'normal', 'normal'],
+
     volume: 0.7,
     isPlaying: false,
 
-    onBeat: null,          // ({ beat, tick, isDownbeat, isBeat }) => void
+    onBeat: null,          // ({ beat, tick, isDownbeat, isBeat, time }) => void
+                           //   time = 그 박이 울리도록 예약된 AudioContext 시각(초)
     onChange: null,        // () => void  (bpm/박자 등이 바뀔 때)
 
     _nextNoteTime: 0,
@@ -43,18 +49,27 @@ const Metronome = {
 
     setBeatsPerMeasure(count) {
         this.beatsPerMeasure = Math.max(1, Math.min(12, Math.round(count)));
+        // 이미 지정한 강조/음소거는 그대로 두고, 늘어난 박만 보통으로 채웁니다.
+        this.beatStates = Array.from(
+            { length: this.beatsPerMeasure },
+            (_, i) => this.beatStates[i] || 'normal'
+        );
         this._tick = 0;
+        this._emitChange();
+    },
+
+    /** 비트 점을 탭할 때마다 보통 → 강조 → 음소거 순으로 돌립니다. */
+    cycleBeatState(index) {
+        if (index < 0 || index >= this.beatsPerMeasure) return;
+
+        const current = BEAT_STATE_ORDER.indexOf(this.beatStates[index]);
+        this.beatStates[index] = BEAT_STATE_ORDER[(current + 1) % BEAT_STATE_ORDER.length];
         this._emitChange();
     },
 
     setSubdivision(value) {
         this.subdivision = Math.max(1, Math.min(4, Math.round(value)));
         this._tick = 0;
-        this._emitChange();
-    },
-
-    setAccent(enabled) {
-        this.accentFirst = Boolean(enabled);
         this._emitChange();
     },
 
@@ -215,13 +230,18 @@ const Metronome = {
     },
 
     _scheduleClick(tick, time) {
+        const state = this.beatStates[Math.floor(tick / this.subdivision)] || 'normal';
+
+        // 음소거된 박은 쪼갠 박까지 통째로 건너뜁니다 (화면 표시는 그대로 진행).
+        if (state === 'mute') return;
+
         const ctx = AudioEngine.context();
         const isBeat = tick % this.subdivision === 0;
-        const isDownbeat = tick === 0 && this.accentFirst;
+        const isAccent = isBeat && state === 'accent';
 
         // 강박 → 약박 → 쪼갠 박 순으로 높이와 크기를 낮춥니다.
         let freq = 800, gainValue = 0.25;
-        if (isDownbeat) {
+        if (isAccent) {
             freq = 1600; gainValue = 1.0;
         } else if (isBeat) {
             freq = 1100; gainValue = 0.6;
@@ -264,7 +284,9 @@ const Metronome = {
                     tick: latest.tick,
                     beat: Math.floor(latest.tick / this.subdivision),
                     isBeat: latest.tick % this.subdivision === 0,
-                    isDownbeat: latest.tick === 0
+                    isDownbeat: latest.tick === 0,
+                    // 화면 쪽에서 박 사이 진행률을 재려면 예약 시각이 필요합니다.
+                    time: latest.time
                 });
             }
 

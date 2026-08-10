@@ -12,3 +12,254 @@
 .met-slide:active {
     cursor: grabbing;
 }
+
+/* ── 박 진행 인디케이터 ────────────────────────────────────────────────
+   테마 3종(sweep / pendulum / pulse)을 같은 자리에 겹쳐 두고 활성 테마만 보입니다.
+   위치·회전은 metronome-ui.js 의 rAF 루프가 매 프레임 직접 넣습니다.
+   움직이는 속성에 transition 을 걸면 그 보간과 싸워서 뚝뚝 끊깁니다.
+
+   공통 클래스: met-pop          = 박이 울린 직후 120ms
+                met-beat-accent = 그 박이 강조 박일 때 (박이 바뀔 때까지 유지) */
+#met-indicator-box {
+    position: relative;
+}
+
+.met-theme {
+    position: absolute;
+    inset: 0;
+}
+
+/* --- 테마 1: sweep — I자 바가 트랙 위를 좌우로 왕복 --------------- */
+.met-sweep-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: #27272a;
+    transform: translateY(-50%);
+}
+
+/* --met-sweep-t (0~1) 는 metronome-ui.js 의 rAF 루프가 매 프레임 넣는 진행률입니다.
+   캡 절반씩만 접어두므로 바 중심이 트랙의 양 끝점에 정확히 닿습니다
+   (캡 바깥쪽 끝 = 트랙 끝). 캡 폭은 --met-cap 한 곳에서만 정의합니다. */
+#met-sweep-bar {
+    --met-cap: 14px;
+    --met-sweep-t: 0.5;
+    position: absolute;
+    top: 50%;
+    left: calc(var(--met-cap) / 2 + var(--met-sweep-t) * (100% - var(--met-cap)));
+    width: 4px;
+    height: 68%;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+    transform: translate(-50%, -50%);
+}
+
+/* I 모양을 만드는 위·아래 짧은 가로 캡 */
+#met-sweep-bar::before,
+#met-sweep-bar::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: var(--met-cap);
+    height: 3px;
+    border-radius: 2px;
+    background: #fbbf24;
+    transform: translateX(-50%);
+}
+
+#met-sweep-bar::before {
+    top: 0;
+}
+
+#met-sweep-bar::after {
+    bottom: 0;
+}
+
+/* 강박 순간에만 잠깐 번집니다. */
+#met-sweep-bar.met-pop.met-beat-accent {
+    background: linear-gradient(180deg, #fef3c7, #f59e0b);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.75);
+}
+
+/* --- 테마 2: pendulum — 진자 바늘 --------------------------------- */
+#met-needle {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    /* 기울었을 때 바늘 끝의 추가 박스를 넘지 않을 만큼만 위를 비웁니다. */
+    height: calc(100% - 7px);
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #fbbf24, #b45309);
+    transform: translateX(-50%) rotate(0deg);
+    transform-origin: bottom center;
+}
+
+/* 바늘 끝(위쪽)의 추 */
+#met-needle::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-radius: 9999px;
+    background: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+    transform: translateX(-50%);
+}
+
+/* 회전축 피벗 — 바늘과 같이 돌면 안 되므로 테마 판에 붙입니다. */
+#met-pendulum::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    background: #3f3f46;
+    border: 1px solid #52525b;
+    transform: translate(-50%, 50%);
+}
+
+/* 강조 박에서 잠깐 밝아집니다. */
+#met-needle.met-pop.met-beat-accent {
+    background: linear-gradient(180deg, #fef3c7, #f59e0b);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.7);
+}
+
+#met-needle.met-pop.met-beat-accent::before {
+    background: #fef3c7;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.9);
+}
+
+/* --- 테마 3: pulse — 중앙 원이 진행률에 따라 차오름 --------------- */
+#met-pulse-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    border: 2px solid #52525b;
+    background: rgba(82, 82, 91, 0.25);
+    transform: translate(-50%, -50%) scale(0.6);
+}
+
+@media (min-width: 640px) {
+    #met-pulse-dot {
+        width: 3.25rem;
+        height: 3.25rem;
+    }
+}
+
+/* 보통 박: emerald 로 잠깐 팝 */
+#met-pulse-dot.met-pop {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+}
+
+/* 강조 박: 그 박 내내 amber 를 유지하고, 팝 순간 더 밝아집니다. */
+#met-pulse-dot.met-beat-accent {
+    border-color: #f59e0b;
+    background: rgba(251, 191, 36, 0.18);
+}
+
+#met-pulse-dot.met-beat-accent.met-pop {
+    border-color: #fef3c7;
+    background: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.7);
+}
+
+/* --- 테마 전환 세그먼트 버튼 -------------------------------------- */
+/* 24px 은 터치 목표 최소치. 옆 여백까지 합쳐 34x24 라 손끝으로도 눌립니다. */
+.met-theme-btn {
+    height: 1.5rem;
+    padding: 0 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #3f3f46;
+    background: #18181b;
+    color: #a1a1aa;
+    font-size: 10px;
+    font-weight: 700;
+    transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+
+.met-theme-btn[aria-pressed="true"] {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+}
+
+/* ── 비트 점 ──────────────────────────────────────────────────────────
+   보이는 점은 작지만 버튼 자체는 28px 이라 모바일에서도 탭이 빗나가지 않습니다. */
+.met-dot {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.met-dot::before {
+    content: '';
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: #3f3f46;
+    transition: transform 75ms, background-color 75ms, box-shadow 75ms;
+}
+
+.met-dot-accent::before {
+    width: 1rem;
+    height: 1rem;
+    background: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+}
+
+.met-dot-mute::before {
+    background: transparent;
+    border: 1px solid #52525b;
+    opacity: 0.5;
+}
+
+/* 재생 중 현재 박 (상태별 색 위에 확대만 얹습니다) */
+.met-dot-active::before {
+    transform: scale(1.35);
+    background: #34d399;
+}
+
+.met-dot-accent.met-dot-active::before {
+    transform: scale(1.3);
+    background: #fde68a;
+}
+
+/* 음소거된 박은 하이라이트도 흐리게 지나갑니다. */
+.met-dot-mute.met-dot-active::before {
+    transform: scale(1.2);
+    background: transparent;
+    border-color: #a1a1aa;
+    opacity: 0.35;
+}
+
+/* 한 줄로 굴러가는 동안 칩이 찌그러지지 않게 합니다 (안내 문단은 그대로 접힙니다). */
+#met-presets > div {
+    flex-shrink: 0;
+}
+
+/* 가로 스크롤바가 높이를 6px 먹어 화면을 밀어내므로 감춥니다 (스와이프로 넘깁니다). */
+#met-presets {
+    scrollbar-width: none;
+}
+
+#met-presets::-webkit-scrollbar {
+    display: none;
+}

@@ -11,14 +11,54 @@ const MetronomeUI = (() => {
     let dragAccum = 0;       // 1 BPM 미만의 이동량을 모아두는 버퍼
     let tapResetTimer = null;
 
-    const DOT_BASE = 'rounded-full transition-all duration-75';
-    const TOGGLE_ON = 'px-3 py-2 rounded-lg text-xs font-bold border border-amber-500 bg-amber-500/10 text-amber-400 transition';
-    const TOGGLE_OFF = 'px-3 py-2 rounded-lg text-xs font-bold border border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 transition';
+    // 박 진행 인디케이터 상태 (테마와 무관하게 공유합니다)
+    let beatDir = 1;         // 이번 박의 진행 방향 (+1: 왼→오, -1: 오→왼). 박마다 뒤집습니다.
+    let beatAnchor = 0;      // 이번 박이 울리는 시각 (AudioContext 시계)
+    let beatDur = 0.6;       // 한 박 길이(초)
+    let indicatorRafId = null;
+    let popTimer = null;
+    let indicatorTheme = 'sweep';
+
+    const INDICATOR_STORAGE_KEY = 'guitarblitz.metronomeIndicator';
+    const NEEDLE_SWING_DEG = 28;
+    const BEATS_MIN = 2;     // 설정 카드의 met-beats 옵션 범위와 같아야 합니다.
+    const BEATS_MAX = 7;
+
+    const BEAT_STATE_LABEL = { accent: '강조', normal: '보통', mute: '음소거' };
+
+    // 테마별 판(hidden 으로 접는 대상), 움직이는 요소(met-pop 을 붙이는 대상), 버튼 라벨.
+    const THEMES = {
+        sweep: { pane: 'met-sweep', el: 'met-sweep-bar', label: '스윕' },
+        pendulum: { pane: 'met-pendulum', el: 'met-needle', label: '진자' },
+        pulse: { pane: 'met-pulse', el: 'met-pulse-dot', label: '펄스' }
+    };
+
+    // THEMES[name] 로 검사하면 'constructor' 같은 상속 키가 통과하므로 이름 목록으로 봅니다.
+    const THEME_NAMES = Object.keys(THEMES);
+
+    // 진행률(0~1)을 활성 테마의 그림으로 옮기는 함수. rAF 루프가 이 중 하나만 호출합니다.
+    const RENDER_THEME = {
+        sweep(progress) {
+            // 방향이 박마다 뒤집히므로 트랙의 양 끝을 왕복합니다.
+            // 0~1 만 넘기고 캡 폭 보정은 CSS(--met-cap)가 합니다.
+            const t = beatDir > 0 ? progress : 1 - progress;
+            $('met-sweep-bar').style.setProperty('--met-sweep-t', t.toFixed(4));
+        },
+        pendulum(progress) {
+            const angle = beatDir * NEEDLE_SWING_DEG * (progress * 2 - 1);
+            $('met-needle').style.transform = `translateX(-50%) rotate(${angle.toFixed(2)}deg)`;
+        },
+        pulse(progress) {
+            $('met-pulse-dot').style.transform = `translate(-50%, -50%) scale(${(0.6 + progress * 0.4).toFixed(3)})`;
+        }
+    };
 
     return {
         init() {
             Metronome.onChange = () => this.render();
             Metronome.onBeat = (beat) => this.flashBeat(beat);
+
+            indicatorTheme = loadIndicatorTheme();
 
             bindTransport();
             bindSlideControl();
@@ -26,6 +66,9 @@ const MetronomeUI = (() => {
             bindTap();
             bindPresets();
             bindKeyboard();
+
+            renderThemeButtons();
+            applyIndicatorTheme();
 
             this.render();
             this.renderPresets();
@@ -44,8 +87,9 @@ const MetronomeUI = (() => {
                 : 'fa-solid fa-play text-lg';
             $('met-toggle-text').innerText = Metronome.isPlaying ? '정지' : '시작';
 
-            $('met-accent').className = Metronome.accentFirst ? TOGGLE_ON : TOGGLE_OFF;
-            $('met-accent-state').innerText = Metronome.accentFirst ? '켬' : '끔';
+            // render() 는 onChange 마다 불리므로 여기서 인디케이터 루프를 붙였다 뗍니다.
+            if (Metronome.isPlaying) startIndicatorLoop();
+            else stopIndicatorLoop();
 
             this.renderBeatDots();
         },
@@ -55,23 +99,27 @@ const MetronomeUI = (() => {
             wrap.innerHTML = '';
 
             for (let i = 0; i < Metronome.beatsPerMeasure; i++) {
-                const dot = document.createElement('div');
-                dot.className = `${DOT_BASE} ${i === 0 ? 'w-4 h-4' : 'w-3 h-3'} bg-zinc-700`;
+                const state = Metronome.beatStates[i] || 'normal';
+
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = `met-dot met-dot-${state}`;
                 dot.dataset.beat = i;
+                dot.setAttribute('aria-label', `${i + 1}박: ${BEAT_STATE_LABEL[state]} — 탭하여 변경`);
+                dot.addEventListener('click', () => Metronome.cycleBeatState(i));
                 wrap.appendChild(dot);
             }
         },
 
-        flashBeat({ beat, isBeat, isDownbeat }) {
+        flashBeat({ beat, isBeat, time }) {
             if (!isBeat) return;   // 쪼갠 박에서는 점을 움직이지 않습니다.
+
+            // 강조 여부는 박 상태에서 직접 읽습니다 (음소거된 첫 박이 빛나면 안 되므로).
+            stepIndicator(time, Metronome.beatStates[beat] === 'accent');
 
             const dots = $('met-beat-dots').children;
             for (let i = 0; i < dots.length; i++) {
-                const active = i === beat;
-                const size = i === 0 ? 'w-4 h-4' : 'w-3 h-3';
-                let color = 'bg-zinc-700';
-                if (active) color = isDownbeat ? 'bg-amber-400 scale-150' : 'bg-emerald-400 scale-125';
-                dots[i].className = `${DOT_BASE} ${size} ${color}`;
+                dots[i].classList.toggle('met-dot-active', i === beat);
             }
         },
 
@@ -97,9 +145,8 @@ const MetronomeUI = (() => {
                 apply.innerText = `${preset.bpm} · ${preset.beatsPerMeasure}/4`;
                 apply.addEventListener('click', () => {
                     Metronome.setBpm(preset.bpm);
-                    Metronome.setBeatsPerMeasure(preset.beatsPerMeasure);
+                    setBeats(preset.beatsPerMeasure);
                     Metronome.setSubdivision(preset.subdivision || 1);
-                    $('met-beats').value = String(preset.beatsPerMeasure);
                     $('met-subdivision').value = String(preset.subdivision || 1);
                     setPresetMessage(`${preset.bpm} BPM 을 불러왔습니다.`);
                 });
@@ -124,13 +171,118 @@ const MetronomeUI = (() => {
         }
     };
 
-    /* --- 재생 / 미세 조정 -------------------------------------------- */
+    /* --- 박 진행 인디케이터 ------------------------------------------- */
+
+    /** 박이 울린 시점을 기준점으로 잡고 진행 방향을 뒤집습니다. */
+    function stepIndicator(time, isAccent) {
+        beatAnchor = time;
+        beatDur = 60 / Metronome.bpm;
+        beatDir = -beatDir;
+
+        // met-beat-accent 는 다음 박까지 유지(펄스 색), met-pop 은 120ms 만 붙입니다(번짐).
+        const el = $(THEMES[indicatorTheme].el);
+        el.classList.toggle('met-beat-accent', isAccent);
+        el.classList.add('met-pop');
+        clearTimeout(popTimer);
+        popTimer = setTimeout(() => el.classList.remove('met-pop'), 120);
+    }
+
+    function startIndicatorLoop() {
+        if (indicatorRafId) return;
+
+        // 엔진이 AudioContext 시계로 소리를 예약하므로 진행률도 같은 시계로 재야
+        // 그림과 소리가 어긋나지 않습니다. performance.now() 를 섞으면 안 됩니다.
+        const ctx = AudioEngine.context();
+        beatAnchor = ctx.currentTime;
+
+        const draw = () => {
+            if (!Metronome.isPlaying) { indicatorRafId = null; return; }
+
+            // 백그라운드 탭에서 rAF 가 멈췄다 돌아오면 progress 가 1로 클램프되어
+            // 그림이 한쪽 끝에 잠깐 머물다가 다음 박에서 자연히 제자리를 찾습니다.
+            const progress = Math.max(0, Math.min(1, (ctx.currentTime - beatAnchor) / beatDur));
+            RENDER_THEME[indicatorTheme](progress);
+
+            indicatorRafId = requestAnimationFrame(draw);
+        };
+
+        indicatorRafId = requestAnimationFrame(draw);
+    }
+
+    function stopIndicatorLoop() {
+        if (indicatorRafId) {
+            cancelAnimationFrame(indicatorRafId);
+            indicatorRafId = null;
+        }
+        clearTimeout(popTimer);
+        resetIndicators();
+    }
+
+    /** 세 테마를 모두 휴지 상태로 돌립니다 (정지 / 테마 전환). */
+    function resetIndicators() {
+        Object.values(THEMES).forEach(({ el }) => {
+            $(el).classList.remove('met-pop', 'met-beat-accent');
+        });
+
+        $('met-sweep-bar').style.setProperty('--met-sweep-t', '0.5');
+        $('met-needle').style.transform = 'translateX(-50%) rotate(0deg)';
+        $('met-pulse-dot').style.transform = 'translate(-50%, -50%) scale(0.6)';
+    }
+
+    /* --- 인디케이터 테마 (스윕 / 진자 / 펄스) ------------------------- */
+    function loadIndicatorTheme() {
+        try {
+            const saved = localStorage.getItem(INDICATOR_STORAGE_KEY);
+            return THEME_NAMES.includes(saved) ? saved : 'sweep';
+        } catch (e) {
+            return 'sweep';
+        }
+    }
+
+    function renderThemeButtons() {
+        const wrap = $('met-indicator-theme');
+        wrap.innerHTML = '';
+
+        Object.entries(THEMES).forEach(([name, { label }]) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'met-theme-btn';
+            btn.dataset.theme = name;
+            btn.innerText = label;
+            btn.setAttribute('aria-label', `박 진행 표시를 ${label} 스타일로`);
+            btn.addEventListener('click', () => setIndicatorTheme(name));
+            wrap.appendChild(btn);
+        });
+    }
+
+    function setIndicatorTheme(name) {
+        if (!THEME_NAMES.includes(name)) return;
+        indicatorTheme = name;
+
+        try {
+            localStorage.setItem(INDICATOR_STORAGE_KEY, name);
+        } catch (e) {
+            console.warn('[Metronome] 인디케이터 설정 저장에 실패했습니다.', e);
+        }
+        applyIndicatorTheme();
+    }
+
+    /** 활성 테마만 보이게 하고 나머지는 접습니다. */
+    function applyIndicatorTheme() {
+        Object.entries(THEMES).forEach(([name, { pane }]) => {
+            $(pane).classList.toggle('hidden', name !== indicatorTheme);
+        });
+
+        Array.from($('met-indicator-theme').children).forEach(btn => {
+            btn.setAttribute('aria-pressed', String(btn.dataset.theme === indicatorTheme));
+        });
+
+        resetIndicators();
+    }
+
+    /* --- 재생 -------------------------------------------------------- */
     function bindTransport() {
         $('met-toggle').addEventListener('click', () => Metronome.toggle());
-        $('met-minus').addEventListener('click', () => Metronome.nudgeBpm(-1));
-        $('met-plus').addEventListener('click', () => Metronome.nudgeBpm(1));
-        $('met-minus-10').addEventListener('click', () => Metronome.nudgeBpm(-10));
-        $('met-plus-10').addEventListener('click', () => Metronome.nudgeBpm(10));
     }
 
     /* --- 좌우 슬라이드로 템포 조절 ----------------------------------- */
@@ -169,26 +321,38 @@ const MetronomeUI = (() => {
 
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
+
+        // 비트 점 행은 카드 안(=드래그 표면)에 있습니다. 점이나 ±를 누르다 손끝이
+        // 몇 px 흔들려도 BPM 이 바뀌지 않게 여기서는 드래그를 시작하지 않습니다.
+        // pointerdown 만 막으므로 click(점 순환 / 박 수 조절)은 그대로 동작합니다.
+        $('met-beat-row').addEventListener('pointerdown', (e) => e.stopPropagation());
     }
 
-    /* --- 박자표 / 쪼갬 / 강박 / 볼륨 --------------------------------- */
+    /* --- 박자표 / 쪼갬 / 볼륨 ---------------------------------------- */
     function bindSettings() {
         $('met-beats').addEventListener('change', (e) => {
-            Metronome.setBeatsPerMeasure(parseInt(e.target.value, 10));
+            setBeats(parseInt(e.target.value, 10));
         });
+
+        // 비트 점 옆 인라인 조절 — 설정 카드의 select 와 서로 동기화됩니다.
+        $('met-beats-minus').addEventListener('click', () => setBeats(Metronome.beatsPerMeasure - 1));
+        $('met-beats-plus').addEventListener('click', () => setBeats(Metronome.beatsPerMeasure + 1));
 
         $('met-subdivision').addEventListener('change', (e) => {
             Metronome.setSubdivision(parseInt(e.target.value, 10));
-        });
-
-        $('met-accent').addEventListener('click', () => {
-            Metronome.setAccent(!Metronome.accentFirst);
         });
 
         $('met-volume').addEventListener('input', (e) => {
             Metronome.setVolume(e.target.value);
             $('met-volume-label').innerText = `${Math.round(Metronome.volume * 100)}%`;
         });
+    }
+
+    /** 박 수를 select 범위(2~7)로 자르고 select 값도 같이 맞춥니다. */
+    function setBeats(count) {
+        const next = Math.max(BEATS_MIN, Math.min(BEATS_MAX, count));
+        Metronome.setBeatsPerMeasure(next);
+        $('met-beats').value = String(next);
     }
 
     /* --- 탭 템포 ------------------------------------------------------ */
