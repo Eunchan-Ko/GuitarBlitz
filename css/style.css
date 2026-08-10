@@ -3,9 +3,15 @@
    (색/여백/타이포는 Tailwind 클래스로 마크업에서 처리)
    =================================================================== */
 
+html {
+    /* 더블탭 확대 제거 (핀치 줌은 유지되어 접근성에 문제 없음) */
+    touch-action: manipulation;
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     user-select: none;
+    word-break: keep-all; /* 한국어를 어절 단위로 줄바꿈 */
 }
 
 /* --- 스크롤바 ---------------------------------------------------- */
@@ -59,12 +65,33 @@ body {
 }
 
 .fret-target-btn {
+    /* left/top 앵커(줄×프렛 교차점) 기준 중앙 정렬. hover/active 에서
+       transform 을 덮어쓸 때도 이 translate 를 반드시 유지해야 합니다.
+       (빼먹으면 버튼이 오른쪽 아래로 반 칸 점프하는 버그가 됩니다) */
+    transform: translate(-50%, -50%);
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fret-target-btn:hover {
-    transform: scale(1.15);
-    z-index: 30;
+/* 호버 확대는 실제 호버가 되는 기기에서만 (터치 기기는 탭에 hover 가 끼면
+   버튼이 커진 채로 고정되어 오히려 혼란) */
+@media (hover: hover) {
+    .fret-target-btn:hover {
+        transform: translate(-50%, -50%) scale(1.15);
+        z-index: 30;
+    }
+}
+
+/* 터치/클릭 중에는 제자리에서 살짝 눌리는 피드백 */
+.fret-target-btn:active {
+    transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* 시각 크기(28px)는 유지하고 터치 판정 영역만 넓힙니다.
+   ponytail: 세로는 줄 간격(32px) 때문에 -2px 가 한계, 가로만 44px 확보 */
+.fret-target-btn::after {
+    content: '';
+    position: absolute;
+    inset: -2px -8px;
 }
 
 /* --- 메트로놈 ---------------------------------------------------- */
@@ -98,4 +125,14 @@ body {
 
 .active-pulse {
     animation: targetPulse 1.2s infinite;
+}
+
+/* --- 모바일 ------------------------------------------------------ */
+@media (max-width: 640px) {
+    /* iOS 는 폰트 16px 미만 입력창에 포커스하면 화면을 자동 확대합니다.
+       Tailwind text-xs/sm 유틸리티보다 우선해야 해서 !important 사용 */
+    input[type="text"],
+    select {
+        font-size: 16px !important;
+    }
 }

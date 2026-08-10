@@ -50,6 +50,8 @@ const UI = (() => {
             $('trainer-panel').classList.add('flex');
             $('btn-pause').classList.toggle('hidden', !showPause);
             $('btn-stop-header').classList.remove('hidden');
+            // 훈련 중 탭 전환은 집중만 깨뜨리므로 탭 자체를 숨깁니다.
+            $('top-tabs').classList.add('hidden');
         },
 
         showSetupPanel() {
@@ -59,6 +61,7 @@ const UI = (() => {
             $('trainer-panel').classList.remove('flex');
             $('btn-pause').classList.add('hidden');
             $('btn-stop-header').classList.add('hidden');
+            $('top-tabs').classList.remove('hidden');
         },
 
         setPauseButton(isPaused) {
