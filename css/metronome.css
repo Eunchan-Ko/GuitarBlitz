@@ -196,6 +196,15 @@
     color: #fbbf24;
 }
 
+/* ── BPM ±1 화살표 ────────────────────────────────────────────────────
+   보이는 크기는 BPM 숫자 줄 높이에 맞춰 두고(한 화면 높이 예산 0), 손끝 목표만
+   사방 4px 넓힙니다. absolute 라 레이아웃 크기는 그대로입니다. */
+.met-bpm-step::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+}
+
 /* ── 비트 점 ──────────────────────────────────────────────────────────
    보이는 점은 작지만 버튼 자체는 28px 이라 모바일에서도 탭이 빗나가지 않습니다. */
 .met-dot {
@@ -336,6 +345,18 @@
 
 .met-song-row input::placeholder {
     color: #52525b;
+}
+
+/* 셋리스트 편집 모달의 곡 행 — met-song-row 와 같이 붙여 입력 스타일을 물려받고,
+   마디 열이 없는 만큼 곡명 칸을 넓게 씁니다. */
+.met-setlist-row {
+    grid-template-columns: minmax(0, 1fr) 4rem 4rem auto;
+}
+
+@media (min-width: 640px) {
+    .met-setlist-row {
+        grid-template-columns: minmax(0, 1fr) 5rem 5rem auto;
+    }
 }
 
 .met-song-move {
