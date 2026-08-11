@@ -54,7 +54,20 @@
         </div>
 
         <div class="text-center mt-1 sm:mt-2">
-            <div id="met-bpm" class="text-4xl sm:text-6xl font-black text-zinc-100 leading-none tracking-tighter">100</div>
+            <!-- BPM 숫자 + ±1 미세조정 화살표. 화살표는 숫자 줄 높이만큼만 늘어나므로(items-stretch)
+                 한 화면 높이 예산을 더 먹지 않습니다. 길게 누르기 반복은 metronome-ui.js 가 붙입니다.
+                 드래그 카드(met-slide-track) 밖이라 템포 드래그와 부딪히지 않습니다. -->
+            <div class="flex items-stretch justify-center gap-1 sm:gap-3">
+                <button id="met-bpm-minus" type="button" aria-label="BPM 1 줄이기"
+                    class="met-bpm-step relative w-10 sm:w-12 flex items-center justify-center text-zinc-500 hover:text-amber-400 active:text-amber-300 text-lg transition select-none">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div id="met-bpm" class="text-4xl sm:text-6xl font-black text-zinc-100 leading-none tracking-tighter">100</div>
+                <button id="met-bpm-plus" type="button" aria-label="BPM 1 늘리기"
+                    class="met-bpm-step relative w-10 sm:w-12 flex items-center justify-center text-zinc-500 hover:text-amber-400 active:text-amber-300 text-lg transition select-none">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
             <div class="text-[11px] font-bold text-zinc-500 mt-1 uppercase tracking-widest leading-tight">
                 BPM · <span id="met-tempo-name" class="text-amber-400">Andante</span>
             </div>

@@ -25,12 +25,17 @@ const SECTION_SAMPLE_ALIASES = {
     'outro': 'outro', '아웃트로': 'outro', '아웃로': 'outro',
     'solo': 'solo', '솔로': 'solo',
     'interlude': 'interlude', '간주': 'interlude',
-    'prechorus': 'prechorus', '프리코러스': 'prechorus'
+    'prechorus': 'prechorus', '프리코러스': 'prechorus',
+    'tag': 'tag', '태그': 'tag'
 };
 const SECTION_SAMPLE_KEYS = [...new Set(Object.values(SECTION_SAMPLE_ALIASES))];
 
 // 합성 음성 폴백에서 고를 목소리. 브라우저마다 목록이 달라 이름 힌트로 걸러냅니다.
-const KO_VOICE_HINTS = ['SunHi', 'Heami', 'Yuna', 'Google 한국의'];
+// 구간 이름에 한글이 있으면 ko, 없으면 en 을 씁니다 (녹음 샘플이 영어 발음이라 결이 맞습니다).
+const VOICE_HINTS = {
+    ko: ['SunHi', 'Heami', 'Yuna', 'Google 한국의'],
+    en: ['Zira', 'Jenny', 'Aria', 'Michelle', 'Google US English']
+};
 
 const Metronome = {
     bpm: METRONOME_CONFIG.defaultBpm,
@@ -216,11 +221,11 @@ const Metronome = {
      */
     speakSection(name, time) {
         const key = sectionSampleKey(name);
-        if (!key) return speakKorean(name);
+        if (!key) return speakFallback(name);
 
         this.ensureSectionSamples().then(samples => {
             const sample = samples && samples[key];
-            if (!sample) return speakKorean(name);   // 로드 실패 — 합성으로 대신합니다
+            if (!sample) return speakFallback(name);   // 로드 실패 — 합성으로 대신합니다
 
             // 첫 안내는 여기서 파일을 받으므로 예약 시각이 이미 지났을 수 있습니다.
             const ctx = AudioEngine.context();
@@ -668,15 +673,17 @@ function sectionSampleKey(name) {
 }
 
 /** 샘플에 없는 이름을 브라우저 음성 합성으로 읽습니다. 합성기가 없으면 조용히 넘어갑니다. */
-function speakKorean(text) {
+function speakFallback(text) {
     if (!text || !window.speechSynthesis) return;
 
-    const voices = speechSynthesis.getVoices().filter(v => /^ko/i.test(v.lang));
-    const voice = voices.find(v => KO_VOICE_HINTS.some(hint => v.name.includes(hint))) || voices[0];
+    // 이름에 한글이 섞여 있으면 한국어 목소리로, 아니면 영어 목소리로 읽습니다.
+    const lang = /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(text) ? 'ko' : 'en';
+    const voices = speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().startsWith(lang));
+    const voice = voices.find(v => VOICE_HINTS[lang].some(hint => v.name.includes(hint))) || voices[0];
 
     const utterance = new SpeechSynthesisUtterance(text);
     if (voice) utterance.voice = voice;
-    utterance.lang = 'ko-KR';
+    utterance.lang = lang === 'ko' ? 'ko-KR' : 'en-US';
     utterance.pitch = 1.15;
     utterance.rate = 1.25;
 

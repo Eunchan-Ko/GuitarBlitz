@@ -79,6 +79,7 @@ const MetronomeUI = (() => {
 
             bindTransport();
             bindSlideControl();
+            bindBpmSteps();
             bindSettings();
             bindTap();
             bindPresets();
@@ -391,6 +392,39 @@ const MetronomeUI = (() => {
         // 몇 px 흔들려도 BPM 이 바뀌지 않게 여기서는 드래그를 시작하지 않습니다.
         // pointerdown 만 막으므로 click(점 순환 / 박 수 조절)은 그대로 동작합니다.
         $('met-beat-row').addEventListener('pointerdown', (e) => e.stopPropagation());
+    }
+
+    /**
+     * BPM 숫자 옆 ±1 화살표. 한 번 누르면 1, 누르고 있으면 400ms 뒤부터 80ms 간격으로 반복합니다.
+     * 첫 1은 pointerdown 에서 바로 반영하고(손끝 반응), 뒤따라오는 click 은 건너뜁니다.
+     * click 경로를 남겨 두는 이유는 키보드(Enter/Space)로도 눌러야 하기 때문입니다.
+     */
+    function bindBpmSteps() {
+        [['met-bpm-minus', -1], ['met-bpm-plus', 1]].forEach(([id, delta]) => {
+            const btn = $(id);
+            let holdTimer = null;
+            let repeatTimer = null;
+            let byPointer = false;
+
+            btn.addEventListener('pointerdown', () => {
+                byPointer = true;
+                Metronome.nudgeBpm(delta);
+                holdTimer = setTimeout(() => {
+                    repeatTimer = setInterval(() => Metronome.nudgeBpm(delta), 80);
+                }, 400);
+            });
+
+            btn.addEventListener('click', () => {
+                if (!byPointer) Metronome.nudgeBpm(delta);
+                byPointer = false;
+            });
+
+            const release = () => {
+                clearTimeout(holdTimer);
+                clearInterval(repeatTimer);
+            };
+            ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, release));
+        });
     }
 
     /* --- 박자표 / 쪼갬 / 볼륨 ---------------------------------------- */
