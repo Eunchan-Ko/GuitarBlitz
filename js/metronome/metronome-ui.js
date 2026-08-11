@@ -67,9 +67,10 @@ const MetronomeUI = (() => {
         init() {
             Metronome.onChange = () => this.render();
             Metronome.onBeat = (beat) => this.flashBeat(beat);
-            Metronome.onSectionChange = (index, section) => {
-                renderSongStatus();
-                announceSection(section.name);
+            Metronome.onSectionChange = () => renderSongStatus();
+            // 음성 안내는 구간이 바뀌는 순간이 아니라 한 마디 전에 나갑니다.
+            Metronome.onSectionUpcoming = (index, section, time) => {
+                if (announceOn) Metronome.speakSection(section.name, time);
             };
             Metronome.onSongEnd = () => setSongMessage('곡을 끝까지 재생했습니다.');
 
@@ -495,6 +496,11 @@ const MetronomeUI = (() => {
             if (!announceOn) cancelAnnounce();
         });
 
+        $('met-song-countin').addEventListener('click', () => {
+            Metronome.setSongCountIn(!Metronome.songCountIn);
+            $('met-song-countin').setAttribute('aria-pressed', String(Metronome.songCountIn));
+        });
+
         $('met-song-new').addEventListener('click', () => openSongModal(-1));
         $('met-song-edit').addEventListener('click', () => openSongModal(songIdx));
 
@@ -531,6 +537,10 @@ const MetronomeUI = (() => {
         $('met-right-icon').className = on
             ? 'fa-solid fa-list-ol text-amber-400'
             : 'fa-solid fa-star text-amber-400';
+
+        // getVoices() 는 첫 호출 뒤에야 비동기로 채워집니다. 사용자 정의 구간 이름을
+        // 합성 음성으로 읽을 때 목소리를 고를 수 있도록 곡 모드에 들어올 때 미리 깨워둡니다.
+        if (on && window.speechSynthesis) speechSynthesis.getVoices();
 
         applySelectedSong();
     }
@@ -571,18 +581,10 @@ const MetronomeUI = (() => {
 
         $('met-song-status').classList.toggle('hidden', !status);
         if (status) {
-            $('met-song-status').innerText = `${status.name} · ${status.measure}/${status.measures}`;
+            $('met-song-status').innerText = status.countIn
+                ? '준비...'
+                : `${status.name} · ${status.measure}/${status.measures}`;
         }
-    }
-
-    /** 구간 이름을 읽어줍니다. 음성 합성이 없는 브라우저에서는 조용히 넘어갑니다. */
-    function announceSection(name) {
-        if (!announceOn || !name || !window.speechSynthesis) return;
-
-        const utterance = new SpeechSynthesisUtterance(name);
-        utterance.rate = 1.2;
-        speechSynthesis.cancel();   // 앞 구간 안내가 남아 있으면 밀어냅니다
-        speechSynthesis.speak(utterance);
     }
 
     function cancelAnnounce() {

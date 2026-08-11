@@ -73,7 +73,8 @@ const METRONOME_CONFIG = {
     maxSongs: 8,
     bpmPerPixel: 0.5,         // 드래그 감도 (2px 당 1 BPM)
 
-    voiceAccentGain: 1.4      // 보이스 카운트에서 강조 박을 키우는 배율
+    voiceAccentGain: 1.4,     // 보이스 카운트에서 강조 박을 키우는 배율
+    sectionAnnounceGain: 1.2  // 구간 안내 음성을 클릭음보다 조금 키우는 배율
 };
 
 // 지판 렌더링 레이아웃 (px 단위)
