@@ -303,7 +303,9 @@
     cursor: not-allowed;
 }
 
+/* met-song-on 은 값이 3개인 구간 안내 버튼용입니다 (aria-pressed 로는 표현할 수 없어서). */
 .met-song-icon[aria-pressed="true"],
+.met-song-icon.met-song-on,
 #met-song-toggle[aria-pressed="true"] {
     border-color: #f59e0b;
     background: rgba(245, 158, 11, 0.12);
@@ -347,16 +349,10 @@
     color: #52525b;
 }
 
-/* 셋리스트 편집 모달의 곡 행 — met-song-row 와 같이 붙여 입력 스타일을 물려받고,
-   마디 열이 없는 만큼 곡명 칸을 넓게 씁니다. */
+/* 셋리스트 편집 모달의 곡 행 — met-song-row 와 같이 붙여 select 스타일을 물려받고,
+   저장된 곡을 고르는 select 하나 + 순서/삭제 버튼만 두므로 두 칸으로 줄입니다. */
 .met-setlist-row {
-    grid-template-columns: minmax(0, 1fr) 4rem 4rem auto;
-}
-
-@media (min-width: 640px) {
-    .met-setlist-row {
-        grid-template-columns: minmax(0, 1fr) 5rem 5rem auto;
-    }
+    grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .met-song-move {

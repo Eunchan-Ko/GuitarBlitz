@@ -176,27 +176,32 @@
             </div>
 
             <!-- 곡 블록. 프리셋 블록과 높이를 맞추려고 아이콘 버튼 한 줄로 눌러 담았습니다.
-                 구간 행과 연주(셋리스트) 행은 같은 자리를 번갈아 쓰므로 둘 다 28px 입니다. -->
+                 두 하위 모드 모두 곡을 구간 시퀀스로 재생하므로 반복/안내/카운트인은 공용으로 두고,
+                 앞쪽 컨트롤(곡 고르기 + 편집)만 번갈아 바꿉니다. 어느 쪽이든 select + 아이콘 6개입니다. -->
             <div id="met-song-block" class="hidden">
-                <div id="met-song-section-row" class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5">
+                    <!-- 구간 모드: 저장된 곡 고르기 + 곡 편집/추가/삭제 -->
                     <!-- h-7 은 옆 아이콘 버튼(28px)과 높이를 맞춰 프리셋 블록보다 커지지 않게 하는 값입니다. -->
-                    <select id="met-song-select" aria-label="연주할 곡" class="flex-1 min-w-0 h-7 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 outline-none focus:border-amber-500"></select>
-                    <button id="met-song-loop" type="button" class="met-song-icon" aria-pressed="false" aria-label="곡 반복" title="곡 반복"><i class="fa-solid fa-repeat"></i></button>
-                    <button id="met-song-announce" type="button" class="met-song-icon" aria-pressed="true" aria-label="구간 이름 음성 안내" title="구간 안내 음성"><i class="fa-solid fa-volume-high"></i></button>
-                    <button id="met-song-countin" type="button" class="met-song-icon" aria-pressed="true" aria-label="시작 전 카운트인 한 마디" title="카운트인"><i class="fa-solid fa-hourglass-start"></i></button>
-                    <button id="met-song-edit" type="button" class="met-song-icon" aria-label="선택한 곡 편집" title="편집"><i class="fa-solid fa-pen"></i></button>
-                    <button id="met-song-new" type="button" class="met-song-icon" aria-label="새 곡 만들기" title="새 곡"><i class="fa-solid fa-plus"></i></button>
-                    <button id="met-song-delete" type="button" class="met-song-icon" aria-label="선택한 곡 삭제" title="삭제"><i class="fa-solid fa-trash"></i></button>
-                </div>
+                    <div id="met-song-section-row" class="flex-1 min-w-0 flex items-center gap-1.5">
+                        <select id="met-song-select" aria-label="연주할 곡" class="flex-1 min-w-0 h-7 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 outline-none focus:border-amber-500"></select>
+                        <button id="met-song-edit" type="button" class="met-song-icon" aria-label="선택한 곡 편집" title="편집"><i class="fa-solid fa-pen"></i></button>
+                        <button id="met-song-new" type="button" class="met-song-icon" aria-label="새 곡 만들기" title="새 곡"><i class="fa-solid fa-plus"></i></button>
+                        <button id="met-song-delete" type="button" class="met-song-icon" aria-label="선택한 곡 삭제" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                    </div>
 
-                <!-- 연주 모드 행. 구간 재생과 무관하게 고른 곡의 템포·박자만 걸어줍니다. -->
-                <div id="met-setlist-row" class="hidden flex items-center gap-1.5">
-                    <select id="met-setlist-select" aria-label="셋리스트의 곡" class="flex-1 min-w-0 h-7 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 outline-none focus:border-amber-500"></select>
-                    <button id="met-setlist-edit" type="button" class="met-song-icon" aria-label="셋리스트 편집" title="편집"><i class="fa-solid fa-pen"></i></button>
-                    <button id="met-setlist-new" type="button" class="met-song-icon" aria-label="셋리스트에 곡 추가" title="새 곡"><i class="fa-solid fa-plus"></i></button>
-                    <button id="met-setlist-delete" type="button" class="met-song-icon" aria-label="선택한 곡 셋리스트에서 삭제" title="삭제"><i class="fa-solid fa-trash"></i></button>
-                    <button id="met-setlist-prev" type="button" class="met-song-icon" aria-label="이전 곡" title="이전 곡"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button id="met-setlist-next" type="button" class="met-song-icon" aria-label="다음 곡" title="다음 곡"><i class="fa-solid fa-chevron-right"></i></button>
+                    <!-- 연주 모드: 셋리스트 순서대로 곡 넘기기 (곡 추가/삭제는 셋리스트 편집 모달에서) -->
+                    <div id="met-setlist-row" class="hidden flex-1 min-w-0 flex items-center gap-1.5">
+                        <select id="met-setlist-select" aria-label="셋리스트의 곡" class="flex-1 min-w-0 h-7 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 outline-none focus:border-amber-500"></select>
+                        <button id="met-setlist-edit" type="button" class="met-song-icon" aria-label="셋리스트 편집" title="셋리스트 편집"><i class="fa-solid fa-pen"></i></button>
+                        <button id="met-setlist-prev" type="button" class="met-song-icon" aria-label="이전 곡" title="이전 곡"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button id="met-setlist-next" type="button" class="met-song-icon" aria-label="다음 곡" title="다음 곡"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+
+                    <!-- 두 모드 공용 -->
+                    <button id="met-song-loop" type="button" class="met-song-icon" aria-pressed="false" aria-label="곡 반복" title="곡 반복"><i class="fa-solid fa-repeat"></i></button>
+                    <!-- 3단계 순환(이름+카운트 → 이름만 → 끔). 아이콘·라벨은 metronome-ui.js 가 넣습니다. -->
+                    <button id="met-song-announce" type="button" class="met-song-icon"><i class="fa-solid fa-bullhorn"></i></button>
+                    <button id="met-song-countin" type="button" class="met-song-icon" aria-pressed="true" aria-label="시작 전 카운트인 한 마디" title="카운트인"><i class="fa-solid fa-hourglass-start"></i></button>
                 </div>
                 <p id="met-song-msg" role="status" class="text-[11px] text-zinc-500 mt-1 sm:mt-2 h-4 truncate"></p>
             </div>
@@ -255,14 +260,11 @@
             <i class="fa-solid fa-guitar text-amber-400"></i> 셋리스트 편집
         </h3>
 
-        <!-- 입력 스타일은 구간 행(met-song-row)에서 그대로 물려받고 열 구성만 바꿉니다. -->
-        <div class="met-song-row met-setlist-row mb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-            <span>곡명</span><span>BPM</span><span>박자</span><span></span>
-        </div>
-        <!-- 곡이 많아지면 모달 안에서만 스크롤됩니다. -->
+        <p class="text-[11px] text-zinc-500 mb-2">저장된 곡을 골라 연주할 순서를 만듭니다. 같은 곡을 여러 번 넣어도 됩니다.</p>
+        <!-- 곡이 많아지면 모달 안에서만 스크롤됩니다. 행은 metronome-ui.js 가 그립니다. -->
         <div id="met-setlist-rows" class="space-y-1.5 max-h-[42vh] overflow-y-auto"></div>
 
-        <button id="met-setlist-add" type="button" class="w-full mt-2 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 border-dashed text-zinc-300 hover:text-amber-400 text-xs font-bold transition">
+        <button id="met-setlist-add" type="button" class="w-full mt-2 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 border-dashed text-zinc-300 hover:text-amber-400 text-xs font-bold transition disabled:opacity-40">
             <i class="fa-solid fa-plus mr-1"></i> 곡 추가
         </button>
 

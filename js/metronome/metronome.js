@@ -31,6 +31,10 @@ const SECTION_SAMPLE_ALIASES = {
 };
 const SECTION_SAMPLE_KEYS = [...new Set(Object.values(SECTION_SAMPLE_ALIASES))];
 
+// 구간 안내 단계. 'count' = 이름 + 밴드 리더 카운트("Chorus! two, three, four"),
+// 'name' = 이름만, 'off' = 안내 없음. 화면의 순환 버튼도 이 순서를 씁니다.
+const SECTION_GUIDE_LEVELS = ['count', 'name', 'off'];
+
 // 합성 음성 폴백에서 고를 목소리. 브라우저마다 목록이 달라 이름 힌트로 걸러냅니다.
 // 구간 이름에 한글이 있으면 ko, 없으면 en 을 씁니다 (녹음 샘플이 영어 발음이라 결이 맞습니다).
 const VOICE_HINTS = {
@@ -56,13 +60,12 @@ const Metronome = {
     song: null,
     songLoop: false,
     songCountIn: true,     // 곡 시작 전 마중물 한 마디
+    sectionGuide: 'count', // SECTION_GUIDE_LEVELS 참고
 
     onBeat: null,          // ({ beat, tick, isDownbeat, isBeat, time }) => void
                            //   time = 그 박이 울리도록 예약된 AudioContext 시각(초)
     onChange: null,        // () => void  (bpm/박자 등이 바뀔 때)
     onSectionChange: null, // (index, section) => void  (곡의 구간이 넘어갈 때)
-    onSectionUpcoming: null, // (nextIdx, nextSection, time) => void
-                           //   구간이 시작하기 한 마디 전. time = 그 마디의 첫 박이 울리는 시각
     onSongEnd: null,       // () => void  (루프가 꺼진 곡을 끝까지 재생했을 때)
 
     _nextNoteTime: 0,
@@ -78,6 +81,7 @@ const Metronome = {
     _songSectionIdx: 0,    // 지금 연주 중인 섹션
     _songMeasure: 0,       // 그 섹션에서 지난 마디 수
     _countIn: false,       // 카운트인 마디를 예약하는 동안만 true
+    _guideMeasure: false,  // 카운트를 얹는 마디(구간 예고 / 카운트인)를 예약하는 동안만 true
 
     /* --- 설정 ------------------------------------------------------ */
     setBpm(value) {
@@ -177,6 +181,12 @@ const Metronome = {
         this._emitChange();
     },
 
+    /** @param {'count'|'name'|'off'} level 알 수 없는 값은 이름+카운트로 봅니다. */
+    setSectionGuide(level) {
+        this.sectionGuide = SECTION_GUIDE_LEVELS.includes(level) ? level : SECTION_GUIDE_LEVELS[0];
+        this._emitChange();
+    },
+
     /**
      * 화면에 뿌릴 현재 구간 정보. 곡이 없으면 null.
      * 예약 시점 기준이므로 마디가 실제로 들리기 시작할 때(다운비트) 읽어야 숫자가 맞습니다.
@@ -246,6 +256,7 @@ const Metronome = {
         this.isPlaying = true;
         this._tick = 0;
         this._visualQueue = [];
+        this._guideMeasure = false;
         // 첫 박이 잘리지 않도록 아주 짧은 여유를 둡니다.
         this._nextNoteTime = ctx.currentTime + 0.06;
 
@@ -261,9 +272,7 @@ const Metronome = {
 
             // 첫 구간은 앞에 예고할 마디가 없어 시작 순간에 알립니다.
             // 카운트인이 켜져 있으면 이 시각이 카운트인 마디의 첫 박이라 자연히 카운트인 중에 들립니다.
-            if (this.onSectionUpcoming) {
-                this.onSectionUpcoming(0, this.song.sections[0], this._nextNoteTime);
-            }
+            this._announceSection(0, this._nextNoteTime);
             // 카운트인이 없으면 지금이 구간 0 의 첫 마디 시작이므로 예고 판단도 함께 합니다
             // (1마디짜리 구간이면 여기서 곧바로 다음 구간을 알립니다).
             if (!this._countIn) this._announceUpcoming(this._nextNoteTime);
@@ -435,25 +444,19 @@ const Metronome = {
     },
 
     /* --- 셋리스트 (localStorage) ----------------------------------- */
-    // 연주 모드용 송리스트. 항목 { title, bpm, beatsPerMeasure|null }
-    // 구간(songs)과 달리 재생 시퀀스가 없고, 고른 곡의 템포·박자를 바로 걸어주기만 합니다.
+    // 연주 모드의 곡 순서. 위 songs 에 저장된 곡의 "이름 배열" 입니다 (같은 곡 중복 허용).
+    // 이름으로 참조하므로 곡을 개명·삭제하면 그 항목은 끊깁니다 — 화면에서 "(없음)" 으로 보이고,
+    // 골라도 적용되지 않습니다. (곡에 고유 id 를 붙이면 사라지는 한계지만, 곡 수가 8개라 이름으로 둡니다.)
     setlist: {
         list() {
             try {
                 const raw = localStorage.getItem(SETLIST_STORAGE_KEY);
                 const parsed = raw ? JSON.parse(raw) : [];
-                return Array.isArray(parsed) ? parsed : [];
+                // 문자열만 남깁니다 — 구형 { title, bpm } 항목이 섞여 있어도 걸러집니다.
+                return Array.isArray(parsed) ? parsed.filter(name => typeof name === 'string') : [];
             } catch (e) {
                 return [];
             }
-        },
-
-        remove(index) {
-            const all = this.list();
-            if (index < 0 || index >= all.length) return;
-
-            all.splice(index, 1);
-            this._write(all);
         },
 
         _write(list) {
@@ -549,10 +552,11 @@ const Metronome = {
      * @param {number} time 이 마디의 첫 박이 울리는 AudioContext 시각
      */
     _announceUpcoming(time) {
-        if (!this.onSectionUpcoming) return;
-
         const sections = this.song.sections;
         const current = sections[this._songSectionIdx];
+
+        // 마디가 바뀔 때마다 지나므로, 예고할 것이 없으면 여기서 가이드도 꺼집니다.
+        this._guideMeasure = false;
         if (!current || this._songMeasure + 1 < current.measures) return;
 
         let nextIdx = this._songSectionIdx + 1;
@@ -561,7 +565,20 @@ const Metronome = {
             nextIdx = 0;
         }
 
-        this.onSectionUpcoming(nextIdx, sections[nextIdx], time);
+        this._announceSection(nextIdx, time);
+    },
+
+    /**
+     * 구간 이름을 알리고, 이 마디에 카운트를 얹을지 정합니다.
+     * 카운트는 _scheduleClick 이 2박부터 넣습니다 (1박은 이름이 대신하므로).
+     * @param {number} index 알릴 구간
+     * @param {number} time 이 마디의 첫 박이 울리는 AudioContext 시각
+     */
+    _announceSection(index, time) {
+        this._guideMeasure = this.sectionGuide === 'count';
+        if (this.sectionGuide === 'off') return;
+
+        this.speakSection(this.song.sections[index].name, time);
     },
 
     /** 섹션의 템포/박자를 적용합니다. 비어 있는 값은 직전 설정을 유지합니다. */
@@ -581,6 +598,11 @@ const Metronome = {
 
     _scheduleClick(tick, time) {
         const beat = Math.floor(tick / this.subdivision);
+        const isBeat = tick % this.subdivision === 0;
+
+        // 가이드 마디(구간 예고 / 카운트인)에는 밴드 리더처럼 "Chorus! two, three, four" 를 얹습니다.
+        // 연주 안내 레이어이므로 사운드 선택도 음소거도 타지 않습니다 — 그래서 mute 검사보다 위에 있습니다.
+        if (this._guideMeasure && isBeat && beat > 0) this._playGuideCount(beat, time);
 
         // 카운트인은 무조건 들려야 하므로 사용자의 박 편집(강조/음소거)을 무시하고
         // 표준 패턴(첫 박 강조 + 나머지 보통)으로 칩니다.
@@ -592,12 +614,12 @@ const Metronome = {
         if (state === 'mute') return;
 
         const ctx = AudioEngine.context();
-        const isBeat = tick % this.subdivision === 0;
         const isAccent = isBeat && state === 'accent';
 
         // 보이스 모드에서는 박 자리만 숫자 음성으로 바꾸고, 쪼갠 박은 클릭으로 둡니다.
         // 샘플이 없는 박(로드 전 / 8박 이상)은 아래 클릭으로 흘러갑니다.
-        const voice = isBeat && this.soundMode === 'voice' && this._voices && this._voices[beat];
+        // 가이드 마디에서는 카운트가 이미 숫자를 읽으므로 정규 숫자 발화를 건너뜁니다(이중 발화 방지).
+        const voice = isBeat && !this._guideMeasure && this.soundMode === 'voice' && this._voices && this._voices[beat];
         if (voice) {
             // 강조 박은 조금 크게.
             this._playSample(voice, time, isAccent ? METRONOME_CONFIG.voiceAccentGain : 1);
@@ -628,6 +650,24 @@ const Metronome = {
 
         osc.start(time);
         osc.stop(time + 0.06);
+    },
+
+    /**
+     * 가이드 마디의 카운트. 박 번호에 맞는 숫자 샘플("two"~)을 구간 안내와 같은 크기로 예약합니다.
+     * 샘플이 아직 없으면 여기서 받아오므로 그 마디만 조금 늦습니다 (speakSection 과 같은 사정).
+     * @param {number} beat 0부터 세는 박 번호. 1박(=이름 자리)에서는 부르지 않습니다.
+     * @param {number} time 그 박이 울리는 AudioContext 시각
+     */
+    _playGuideCount(beat, time) {
+        const play = () => {
+            const sample = this._voices && this._voices[beat];
+            if (!sample) return;   // 샘플 범위(7박)를 넘는 박
+
+            const ctx = AudioEngine.context();
+            this._playSample(sample, Math.max(time, ctx.currentTime), METRONOME_CONFIG.sectionAnnounceGain);
+        };
+
+        this._voices ? play() : this.ensureVoices().then(play);
     },
 
     /**
