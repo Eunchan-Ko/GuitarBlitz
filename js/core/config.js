@@ -70,6 +70,7 @@ const METRONOME_CONFIG = {
     tapMinSamples: 2,
 
     maxPresets: 8,
+    maxSongs: 8,
     bpmPerPixel: 0.5,         // 드래그 감도 (2px 당 1 BPM)
 
     voiceAccentGain: 1.4      // 보이스 카운트에서 강조 박을 키우는 배율
