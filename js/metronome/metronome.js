@@ -9,6 +9,7 @@
 
 const PRESETS_STORAGE_KEY = 'guitarblitz.metronomePresets';
 const SONGS_STORAGE_KEY = 'guitarblitz.metronomeSongs';
+const SETLIST_STORAGE_KEY = 'guitarblitz.metronomeSetlist';
 const VISUAL_QUEUE_LIMIT = 64;
 const BEAT_STATE_ORDER = ['normal', 'accent', 'mute'];
 
@@ -429,6 +430,37 @@ const Metronome = {
                 localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(list));
             } catch (e) {
                 console.warn('[Metronome] 곡 저장에 실패했습니다.', e);
+            }
+        }
+    },
+
+    /* --- 셋리스트 (localStorage) ----------------------------------- */
+    // 연주 모드용 송리스트. 항목 { title, bpm, beatsPerMeasure|null }
+    // 구간(songs)과 달리 재생 시퀀스가 없고, 고른 곡의 템포·박자를 바로 걸어주기만 합니다.
+    setlist: {
+        list() {
+            try {
+                const raw = localStorage.getItem(SETLIST_STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        },
+
+        remove(index) {
+            const all = this.list();
+            if (index < 0 || index >= all.length) return;
+
+            all.splice(index, 1);
+            this._write(all);
+        },
+
+        _write(list) {
+            try {
+                localStorage.setItem(SETLIST_STORAGE_KEY, JSON.stringify(list.slice(0, METRONOME_CONFIG.maxSetlist)));
+            } catch (e) {
+                console.warn('[Metronome] 셋리스트 저장에 실패했습니다.', e);
             }
         }
     },
