@@ -5,7 +5,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-4">
 
     <!-- Left: Tempo control -->
-    <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-5 shadow-xl">
+    <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-5 shadow-xl">
         <!-- 좁은 화면에서는 탭 이름이 이미 "메트로놈"이라 제목을 접어 스크롤을 없앱니다.
              sr-only 이므로 스크린 리더에는 그대로 읽힙니다. -->
         <h2 class="sr-only sm:not-sr-only text-base font-bold sm:mb-3 text-zinc-100 flex items-center gap-2">
@@ -18,6 +18,8 @@
                  카드 안쪽 전체 폭을 쓰므로 스윕 바가 BPM 바 폭 그대로 왕복합니다.
                  매 프레임 위치 갱신은 metronome-ui.js 의 rAF 루프 하나가 담당합니다. -->
             <div id="met-indicator-box" class="h-16 sm:h-24">
+                <!-- 곡 모드의 현재 구간. absolute 로 겹쳐 두어 한 화면 높이 예산을 먹지 않습니다. -->
+                <div id="met-song-status" role="status" class="hidden"></div>
                 <div id="met-sweep" class="met-theme">
                     <div class="met-sweep-track"></div>
                     <div id="met-sweep-bar"></div>
@@ -82,7 +84,7 @@
     </div>
 
     <!-- Right: Settings / Presets / Shortcuts (한 장으로 통합) -->
-    <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-5 shadow-xl space-y-2 sm:space-y-3">
+    <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-5 shadow-xl space-y-1 sm:space-y-3">
 
         <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2">
             <i class="fa-solid fa-music text-amber-400"></i> 박자 설정
@@ -111,27 +113,63 @@
             </div>
         </div>
 
-        <div>
-            <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
-                <span>볼륨</span>
-                <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
+        <!-- 볼륨과 사운드 종류는 한 화면 유지를 위해 한 행에 나란히 둡니다. -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
+                    <span>볼륨</span>
+                    <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
+                </div>
+                <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                <!-- 음성 로드 상태. 이 한 줄만큼 카드가 높아지므로 아래 여백들에서 회수했습니다
+                     (좁은 화면 원스크린 예산은 metronome 뷰 전체에서 4px 밖에 남지 않습니다). -->
+                <p id="met-sound-msg" role="status" class="text-[11px] text-zinc-500 mt-1 sm:mt-1.5 h-4 leading-tight truncate"></p>
             </div>
-            <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+            <div>
+                <label for="met-sound" class="block text-xs font-semibold text-zinc-300 mb-1">사운드</label>
+                <select id="met-sound" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2 outline-none focus:border-amber-500">
+                    <option value="click" selected>클릭</option>
+                    <option value="voice">보이스 카운트</option>
+                </select>
+            </div>
         </div>
 
-        <!-- Presets -->
+        <!-- Presets / Song mode — 같은 자리를 번갈아 씁니다 (높이 예산 공유). -->
         <div class="border-t border-zinc-800 pt-2 sm:pt-3">
-            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                    <i class="fa-solid fa-star text-amber-400"></i> 즐겨찾는 템포
+            <div class="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
+                <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2 min-w-0">
+                    <i id="met-right-icon" class="fa-solid fa-star text-amber-400"></i>
+                    <span id="met-right-title" class="truncate">즐겨찾는 템포</span>
                 </h3>
-                <button id="btn-met-save-preset" class="text-[11px] text-zinc-300 hover:text-amber-400 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2.5 py-1.5 rounded-lg transition font-bold">
-                    <i class="fa-solid fa-plus mr-1"></i> 현재 템포 저장
-                </button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="btn-met-save-preset" class="text-[11px] text-zinc-300 hover:text-amber-400 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2.5 py-1.5 rounded-lg transition font-bold">
+                        <i class="fa-solid fa-plus mr-1"></i> 현재 템포 저장
+                    </button>
+                    <button id="met-song-toggle" type="button" aria-pressed="false" class="text-[11px] text-zinc-300 hover:text-amber-400 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-2.5 py-1.5 rounded-lg transition font-bold">
+                        곡 모드
+                    </button>
+                </div>
             </div>
-            <!-- 좁은 화면에서는 칩이 여러 줄로 늘어나 화면을 밀어내므로 한 줄로 두고 옆으로 굴립니다. -->
-            <div id="met-presets" class="flex flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible gap-2"></div>
-            <p id="met-preset-msg" class="text-[11px] text-zinc-500 mt-1.5 sm:mt-2 h-4"></p>
+
+            <div id="met-preset-block">
+                <!-- 좁은 화면에서는 칩이 여러 줄로 늘어나 화면을 밀어내므로 한 줄로 두고 옆으로 굴립니다. -->
+                <div id="met-presets" class="flex flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible gap-2"></div>
+                <p id="met-preset-msg" class="text-[11px] text-zinc-500 mt-1 sm:mt-2 h-4"></p>
+            </div>
+
+            <!-- 곡 블록. 프리셋 블록과 높이를 맞추려고 아이콘 버튼 한 줄로 눌러 담았습니다. -->
+            <div id="met-song-block" class="hidden">
+                <div class="flex items-center gap-1.5">
+                    <!-- h-7 은 옆 아이콘 버튼(28px)과 높이를 맞춰 프리셋 블록보다 커지지 않게 하는 값입니다. -->
+                    <select id="met-song-select" aria-label="연주할 곡" class="flex-1 min-w-0 h-7 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg px-2 outline-none focus:border-amber-500"></select>
+                    <button id="met-song-loop" type="button" class="met-song-icon" aria-pressed="false" aria-label="곡 반복" title="곡 반복"><i class="fa-solid fa-repeat"></i></button>
+                    <button id="met-song-announce" type="button" class="met-song-icon" aria-pressed="true" aria-label="구간 이름 음성 안내" title="구간 안내 음성"><i class="fa-solid fa-volume-high"></i></button>
+                    <button id="met-song-edit" type="button" class="met-song-icon" aria-label="선택한 곡 편집" title="편집"><i class="fa-solid fa-pen"></i></button>
+                    <button id="met-song-new" type="button" class="met-song-icon" aria-label="새 곡 만들기" title="새 곡"><i class="fa-solid fa-plus"></i></button>
+                    <button id="met-song-delete" type="button" class="met-song-icon" aria-label="선택한 곡 삭제" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <p id="met-song-msg" role="status" class="text-[11px] text-zinc-500 mt-1 sm:mt-2 h-4 truncate"></p>
+            </div>
         </div>
 
         <!-- Shortcuts -->
@@ -140,6 +178,41 @@
             <span><kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">←</kbd> <kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">→</kbd> ±1 BPM</span>
             <span><kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">Shift</kbd> + 방향키 ±10</span>
             <span><kbd class="px-1 py-0.5 bg-zinc-800 border border-zinc-700 rounded">T</kbd> 탭 템포</span>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 곡 편집 모달 ============ -->
+<!-- fixed 라 위 그리드의 한 화면 높이 예산과 무관합니다.
+     구간 행은 metronome-ui.js 가 그립니다 (modals.html 의 닉네임 모달과 같은 열고 닫기 패턴). -->
+<div id="met-song-modal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-zinc-950/80 backdrop-blur p-3 sm:p-4">
+    <div class="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-4 sm:p-6">
+        <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-list-ol text-amber-400"></i> 곡 편집
+        </h3>
+
+        <input type="text" id="met-song-name" maxlength="24" placeholder="곡 이름"
+               class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 text-sm rounded-lg px-3 py-2 outline-none focus:border-amber-500 placeholder:text-zinc-600">
+
+        <div class="met-song-row mt-3 mb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            <span>구간</span><span>마디</span><span>BPM</span><span>박자</span><span></span>
+        </div>
+        <!-- 구간이 많아지면 모달 안에서만 스크롤됩니다. -->
+        <div id="met-song-sections" class="space-y-1.5 max-h-[42vh] overflow-y-auto"></div>
+
+        <button id="met-song-add-section" type="button" class="w-full mt-2 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 border-dashed text-zinc-300 hover:text-amber-400 text-xs font-bold transition">
+            <i class="fa-solid fa-plus mr-1"></i> 구간 추가
+        </button>
+
+        <p id="met-song-modal-msg" class="text-[11px] mt-2 h-4 text-zinc-500"></p>
+
+        <div class="grid grid-cols-2 gap-2 mt-1">
+            <button id="met-song-save" type="button" class="py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs transition">
+                저장
+            </button>
+            <button id="met-song-cancel" type="button" class="py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-bold transition">
+                취소
+            </button>
         </div>
     </div>
 </div>

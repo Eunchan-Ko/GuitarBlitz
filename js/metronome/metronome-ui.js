@@ -11,6 +11,13 @@ const MetronomeUI = (() => {
     let dragAccum = 0;       // 1 BPM 미만의 이동량을 모아두는 버퍼
     let tapResetTimer = null;
 
+    // 곡 모드. 곡 목록만 localStorage 에 남고, 아래 상태는 세션 동안만 유지합니다.
+    let songMode = false;
+    let songIdx = 0;         // met-song-select 에서 고른 곡
+    let announceOn = true;   // 구간 이름 음성 안내
+    let editIdx = -1;        // 모달에서 편집 중인 곡 (-1 = 새 곡)
+    let editSections = [];   // 저장 전까지의 임시 구간 목록
+
     // 박 진행 인디케이터 상태 (테마와 무관하게 공유합니다)
     let beatDir = 1;         // 이번 박의 진행 방향 (+1: 왼→오, -1: 오→왼). 박마다 뒤집습니다.
     let beatAnchor = 0;      // 이번 박이 울리는 시각 (AudioContext 시계)
@@ -20,9 +27,12 @@ const MetronomeUI = (() => {
     let indicatorTheme = 'sweep';
 
     const INDICATOR_STORAGE_KEY = 'guitarblitz.metronomeIndicator';
+    const SOUND_STORAGE_KEY = 'guitarblitz.metronomeSound';
+    const SOUND_MODES = ['click', 'voice'];
     const NEEDLE_SWING_DEG = 28;
     const BEATS_MIN = 2;     // 설정 카드의 met-beats 옵션 범위와 같아야 합니다.
     const BEATS_MAX = 7;
+    const SECTION_MAX_MEASURES = 99;
 
     const BEAT_STATE_LABEL = { accent: '강조', normal: '보통', mute: '음소거' };
 
@@ -57,14 +67,21 @@ const MetronomeUI = (() => {
         init() {
             Metronome.onChange = () => this.render();
             Metronome.onBeat = (beat) => this.flashBeat(beat);
+            Metronome.onSectionChange = (index, section) => {
+                renderSongStatus();
+                announceSection(section.name);
+            };
+            Metronome.onSongEnd = () => setSongMessage('곡을 끝까지 재생했습니다.');
 
             indicatorTheme = loadIndicatorTheme();
+            restoreSoundMode();
 
             bindTransport();
             bindSlideControl();
             bindSettings();
             bindTap();
             bindPresets();
+            bindSong();
             bindKeyboard();
 
             renderThemeButtons();
@@ -72,6 +89,7 @@ const MetronomeUI = (() => {
 
             this.render();
             this.renderPresets();
+            renderSongSelect();
         },
 
         render() {
@@ -88,9 +106,14 @@ const MetronomeUI = (() => {
             $('met-toggle-text').innerText = Metronome.isPlaying ? '정지' : '시작';
 
             // render() 는 onChange 마다 불리므로 여기서 인디케이터 루프를 붙였다 뗍니다.
-            if (Metronome.isPlaying) startIndicatorLoop();
-            else stopIndicatorLoop();
+            if (Metronome.isPlaying) {
+                startIndicatorLoop();
+            } else {
+                stopIndicatorLoop();
+                cancelAnnounce();   // 정지(곡 끝 포함)하면 남은 구간 안내를 끊습니다
+            }
 
+            renderSongStatus();
             this.renderBeatDots();
         },
 
@@ -111,8 +134,12 @@ const MetronomeUI = (() => {
             }
         },
 
-        flashBeat({ beat, isBeat, time }) {
+        flashBeat({ beat, isBeat, isDownbeat, time }) {
             if (!isBeat) return;   // 쪼갠 박에서는 점을 움직이지 않습니다.
+
+            // 마디 번호는 마디가 실제로 들리기 시작할 때만 갱신합니다
+            // (엔진은 마디의 마지막 박을 예약하는 시점에 이미 다음 마디로 넘어가 있습니다).
+            if (isDownbeat) renderSongStatus();
 
             // 강조 여부는 박 상태에서 직접 읽습니다 (음소거된 첫 박이 빛나면 안 되므로).
             stepIndicator(time, Metronome.beatStates[beat] === 'accent');
@@ -280,9 +307,46 @@ const MetronomeUI = (() => {
         resetIndicators();
     }
 
+    /* --- 사운드 종류 (클릭 / 보이스 카운트) --------------------------- */
+
+    /** 저장된 선택만 되살립니다. 파일은 첫 사용 시점(선택 변경 / 재생)에 받습니다. */
+    function restoreSoundMode() {
+        let saved = 'click';
+        try {
+            const raw = localStorage.getItem(SOUND_STORAGE_KEY);
+            if (SOUND_MODES.includes(raw)) saved = raw;
+        } catch (e) { /* 저장소 접근 불가 */ }
+
+        Metronome.setSoundMode(saved);
+        $('met-sound').value = saved;
+    }
+
+    /**
+     * 보이스 샘플을 준비하고 상태 문구를 갱신합니다.
+     * 이미 받아둔 경우 promise 가 즉시 풀려 "로드 중" 이 화면에 남지 않습니다.
+     */
+    function requestVoices() {
+        setSoundMessage('음성 로드 중...');
+
+        Metronome.ensureVoices().then(ok => {
+            // 문구는 한 줄(모바일 154px)에 들어가야 합니다 — 길어지면 아래 즐겨찾기를 밀어냅니다.
+            setSoundMessage(ok ? '' : '음성 로드 실패 · 클릭으로 전환');
+            // 실패하면 엔진이 클릭으로 되돌리므로 select 도 따라갑니다.
+            $('met-sound').value = Metronome.soundMode;
+        });
+    }
+
+    function setSoundMessage(message) {
+        $('met-sound-msg').innerText = message;
+    }
+
     /* --- 재생 -------------------------------------------------------- */
     function bindTransport() {
-        $('met-toggle').addEventListener('click', () => Metronome.toggle());
+        $('met-toggle').addEventListener('click', () => {
+            // 저장된 선택으로 시작하는 경우, 여기가 파일을 받을 첫 사용자 제스처입니다.
+            if (!Metronome.isPlaying && Metronome.soundMode === 'voice') requestVoices();
+            Metronome.toggle();
+        });
     }
 
     /* --- 좌우 슬라이드로 템포 조절 ----------------------------------- */
@@ -346,6 +410,20 @@ const MetronomeUI = (() => {
             Metronome.setVolume(e.target.value);
             $('met-volume-label').innerText = `${Math.round(Metronome.volume * 100)}%`;
         });
+
+        $('met-sound').addEventListener('change', (e) => {
+            const mode = e.target.value;
+            Metronome.setSoundMode(mode);
+
+            try {
+                localStorage.setItem(SOUND_STORAGE_KEY, Metronome.soundMode);
+            } catch (err) {
+                console.warn('[Metronome] 사운드 설정 저장에 실패했습니다.', err);
+            }
+
+            if (mode === 'voice') requestVoices();
+            else setSoundMessage('');
+        });
     }
 
     /** 박 수를 select 범위(2~7)로 자르고 select 값도 같이 맞춥니다. */
@@ -397,11 +475,280 @@ const MetronomeUI = (() => {
         $('met-preset-msg').innerText = message;
     }
 
+    /* --- 곡 모드 ------------------------------------------------------ */
+    function bindSong() {
+        $('met-song-toggle').addEventListener('click', () => setSongMode(!songMode));
+
+        $('met-song-select').addEventListener('change', (e) => {
+            songIdx = parseInt(e.target.value, 10) || 0;
+            applySelectedSong();
+        });
+
+        $('met-song-loop').addEventListener('click', () => {
+            Metronome.setSongLoop(!Metronome.songLoop);
+            $('met-song-loop').setAttribute('aria-pressed', String(Metronome.songLoop));
+        });
+
+        $('met-song-announce').addEventListener('click', () => {
+            announceOn = !announceOn;
+            $('met-song-announce').setAttribute('aria-pressed', String(announceOn));
+            if (!announceOn) cancelAnnounce();
+        });
+
+        $('met-song-new').addEventListener('click', () => openSongModal(-1));
+        $('met-song-edit').addEventListener('click', () => openSongModal(songIdx));
+
+        $('met-song-delete').addEventListener('click', () => {
+            const list = Metronome.songs.list();
+            if (!list.length) return;
+
+            const removed = list[songIdx].name;
+            Metronome.songs.remove(songIdx);
+            songIdx = 0;
+            renderSongSelect();
+            applySelectedSong();
+            setSongMessage(`"${removed}" 을 삭제했습니다.`);
+        });
+
+        $('met-song-add-section').addEventListener('click', () => {
+            editSections.push({ name: '', measures: 4, bpm: null, beatsPerMeasure: null });
+            renderSections();
+        });
+
+        $('met-song-save').addEventListener('click', saveSong);
+        $('met-song-cancel').addEventListener('click', closeSongModal);
+    }
+
+    /** 프리셋 블록과 곡 블록은 같은 자리를 번갈아 씁니다 (한 화면 높이 예산 공유). */
+    function setSongMode(on) {
+        songMode = on;
+
+        $('met-preset-block').classList.toggle('hidden', on);
+        $('met-song-block').classList.toggle('hidden', !on);
+        $('btn-met-save-preset').classList.toggle('hidden', on);
+        $('met-song-toggle').setAttribute('aria-pressed', String(on));
+        $('met-right-title').innerText = on ? '곡 모드' : '즐겨찾는 템포';
+        $('met-right-icon').className = on
+            ? 'fa-solid fa-list-ol text-amber-400'
+            : 'fa-solid fa-star text-amber-400';
+
+        applySelectedSong();
+    }
+
+    /** 곡 모드일 때만 엔진에 곡을 겁니다. OFF 면 기존 메트로놈 동작 그대로입니다. */
+    function applySelectedSong() {
+        const list = Metronome.songs.list();
+
+        if (!songMode || !list.length) {
+            Metronome.clearSong();
+            return;
+        }
+        Metronome.setSong(list[Math.min(songIdx, list.length - 1)]);
+    }
+
+    function renderSongSelect() {
+        const select = $('met-song-select');
+        const list = Metronome.songs.list();
+        select.innerHTML = '';
+
+        list.forEach((song, i) => select.appendChild(new Option(song.name, String(i))));
+
+        if (!list.length) {
+            select.appendChild(new Option('저장된 곡 없음', ''));
+        } else {
+            songIdx = Math.min(songIdx, list.length - 1);
+            select.value = String(songIdx);
+        }
+
+        select.disabled = !list.length;
+        $('met-song-edit').disabled = !list.length;
+        $('met-song-delete').disabled = !list.length;
+    }
+
+    /** 인디케이터 박스 좌상단의 "구간 · 마디/전체" 오버레이. */
+    function renderSongStatus() {
+        const status = Metronome.isPlaying ? Metronome.songStatus() : null;
+
+        $('met-song-status').classList.toggle('hidden', !status);
+        if (status) {
+            $('met-song-status').innerText = `${status.name} · ${status.measure}/${status.measures}`;
+        }
+    }
+
+    /** 구간 이름을 읽어줍니다. 음성 합성이 없는 브라우저에서는 조용히 넘어갑니다. */
+    function announceSection(name) {
+        if (!announceOn || !name || !window.speechSynthesis) return;
+
+        const utterance = new SpeechSynthesisUtterance(name);
+        utterance.rate = 1.2;
+        speechSynthesis.cancel();   // 앞 구간 안내가 남아 있으면 밀어냅니다
+        speechSynthesis.speak(utterance);
+    }
+
+    function cancelAnnounce() {
+        if (window.speechSynthesis) speechSynthesis.cancel();
+    }
+
+    function setSongMessage(message) {
+        $('met-song-msg').innerText = message;
+    }
+
+    /* --- 곡 편집 모달 -------------------------------------------------- */
+    /** @param {number} index 편집할 곡. -1 이면 현재 템포로 채운 새 곡. */
+    function openSongModal(index) {
+        const song = index >= 0 ? Metronome.songs.list()[index] : null;
+
+        editIdx = song ? index : -1;
+        editSections = song
+            ? song.sections.map(section => ({ ...section }))
+            : [{ name: '인트로', measures: 4, bpm: Metronome.bpm, beatsPerMeasure: Metronome.beatsPerMeasure }];
+
+        $('met-song-name').value = song ? song.name : '';
+        setModalMessage('');
+        renderSections();
+
+        $('met-song-modal').classList.remove('hidden');
+        $('met-song-modal').classList.add('flex');
+        $('met-song-name').focus();
+    }
+
+    function closeSongModal() {
+        $('met-song-modal').classList.add('hidden');
+        $('met-song-modal').classList.remove('flex');
+    }
+
+    /** 구간 행을 그립니다. 입력은 editSections 에 그때그때 쓰고, 검증은 저장할 때 합니다. */
+    function renderSections() {
+        const wrap = $('met-song-sections');
+        wrap.innerHTML = '';
+
+        editSections.forEach((section, i) => {
+            const row = document.createElement('div');
+            row.className = 'met-song-row';
+
+            const name = document.createElement('input');
+            name.type = 'text';
+            name.maxLength = 12;
+            name.value = section.name || '';
+            name.placeholder = `${i + 1}구간`;
+            name.setAttribute('aria-label', `${i + 1}번째 구간 이름`);
+            name.addEventListener('input', () => { section.name = name.value; });
+
+            const measures = numberField(section.measures, 1, SECTION_MAX_MEASURES, '마디 수', '',
+                (value) => { section.measures = value; });
+
+            // 비워두면 직전 구간의 값을 그대로 씁니다 — placeholder 로 그 뜻을 보입니다.
+            const bpm = numberField(section.bpm, METRONOME_CONFIG.minBpm, METRONOME_CONFIG.maxBpm, 'BPM (비우면 유지)', '유지',
+                (value) => { section.bpm = value; });
+
+            const beats = document.createElement('select');
+            beats.setAttribute('aria-label', '박 수 (비우면 유지)');
+            beats.appendChild(new Option('유지', ''));
+            for (let b = BEATS_MIN; b <= BEATS_MAX; b++) {
+                beats.appendChild(new Option(`${b}박`, String(b)));
+            }
+            beats.value = section.beatsPerMeasure ? String(section.beatsPerMeasure) : '';
+            beats.addEventListener('change', () => {
+                section.beatsPerMeasure = beats.value ? parseInt(beats.value, 10) : null;
+            });
+
+            const tools = document.createElement('div');
+            tools.className = 'flex items-center justify-end';
+            tools.appendChild(iconButton('▲', '위로 이동', () => moveSection(i, -1)));
+            tools.appendChild(iconButton('▼', '아래로 이동', () => moveSection(i, 1)));
+
+            const del = iconButton('✕', '구간 삭제', () => {
+                editSections.splice(i, 1);
+                renderSections();
+            });
+            del.classList.add('met-song-del');
+            tools.appendChild(del);
+
+            [name, measures, bpm, beats, tools].forEach(el => row.appendChild(el));
+            wrap.appendChild(row);
+        });
+    }
+
+    /** 빈 칸을 null 로 넘기는 숫자 입력. 범위는 저장할 때 다시 자릅니다. */
+    function numberField(value, min, max, label, placeholder, onInput) {
+        const el = document.createElement('input');
+        el.type = 'number';
+        el.min = String(min);
+        el.max = String(max);
+        el.value = value == null ? '' : String(value);
+        el.placeholder = placeholder;
+        el.setAttribute('aria-label', label);
+        el.addEventListener('input', () => {
+            onInput(el.value === '' ? null : parseInt(el.value, 10));
+        });
+        return el;
+    }
+
+    function iconButton(glyph, label, onClick) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'met-song-move';
+        btn.innerText = glyph;
+        btn.title = label;
+        btn.setAttribute('aria-label', label);
+        btn.addEventListener('click', onClick);
+        return btn;
+    }
+
+    function moveSection(from, delta) {
+        const to = from + delta;
+        if (to < 0 || to >= editSections.length) return;
+
+        const swap = editSections[to];
+        editSections[to] = editSections[from];
+        editSections[from] = swap;
+        renderSections();
+    }
+
+    function saveSong() {
+        const name = $('met-song-name').value.trim();
+
+        if (!name) return setModalMessage('곡 이름을 입력하세요.');
+        if (!editSections.length) return setModalMessage('구간을 하나 이상 추가하세요.');
+
+        const song = {
+            name,
+            sections: editSections.map((section, i) => ({
+                name: (section.name || '').trim() || `${i + 1}구간`,
+                measures: Math.max(1, Math.min(SECTION_MAX_MEASURES, Math.round(section.measures) || 1)),
+                // null = 직전 구간 설정 유지
+                bpm: section.bpm ? clampBpm(Math.round(section.bpm)) : null,
+                beatsPerMeasure: section.beatsPerMeasure
+                    ? Math.max(BEATS_MIN, Math.min(BEATS_MAX, Math.round(section.beatsPerMeasure)))
+                    : null
+            }))
+        };
+
+        const res = editIdx >= 0
+            ? Metronome.songs.update(editIdx, song)
+            : Metronome.songs.add(song);
+
+        if (!res.ok) return setModalMessage(res.message);
+
+        if (editIdx < 0) songIdx = Metronome.songs.list().length - 1;
+
+        closeSongModal();
+        renderSongSelect();
+        applySelectedSong();
+        setSongMessage(`"${song.name}" 을 저장했습니다.`);
+    }
+
+    function setModalMessage(message) {
+        $('met-song-modal-msg').innerText = message;
+    }
+
     /* --- 키보드 단축키 ------------------------------------------------ */
     function bindKeyboard() {
         document.addEventListener('keydown', (e) => {
             // 메트로놈 탭이 열려 있고, 입력 요소에 포커스가 없을 때만 반응합니다.
             if ($('view-metronome').classList.contains('hidden')) return;
+            // 곡 편집 모달이 열려 있으면 Space 가 재생을 토글해 편집을 방해합니다.
+            if (!$('met-song-modal').classList.contains('hidden')) return;
 
             const tag = (document.activeElement && document.activeElement.tagName) || '';
             if (['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) return;

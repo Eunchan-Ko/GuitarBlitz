@@ -250,6 +250,113 @@
     opacity: 0.35;
 }
 
+/* ── 곡 모드 ──────────────────────────────────────────────────────────
+   현재 구간 표시. 인디케이터 박스(position:relative) 좌상단에 겹쳐 두므로
+   글자가 길어져도 아래 요소를 밀지 않습니다 (한 화면 예산 소모 0). */
+#met-song-status {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #fbbf24;
+    pointer-events: none;
+}
+
+/* 곡 블록의 정사각 아이콘 버튼. 토글(반복/안내)은 aria-pressed 로 켜짐을 보입니다. */
+.met-song-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border-radius: 0.5rem;
+    border: 1px solid #3f3f46;
+    background: #18181b;
+    color: #a1a1aa;
+    font-size: 11px;
+    transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+
+.met-song-icon:hover:not(:disabled) {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+.met-song-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.met-song-icon[aria-pressed="true"],
+#met-song-toggle[aria-pressed="true"] {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+}
+
+/* 곡 편집 모달의 구간 행 — 헤더와 각 행이 같은 격자를 씁니다. */
+.met-song-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3rem 3.5rem 4rem auto;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+@media (min-width: 640px) {
+    .met-song-row {
+        grid-template-columns: minmax(0, 1fr) 3.5rem 4.5rem 5rem auto;
+        gap: 0.375rem;
+    }
+}
+
+.met-song-row input,
+.met-song-row select {
+    width: 100%;
+    min-width: 0;
+    background: #09090b;
+    border: 1px solid #3f3f46;
+    border-radius: 0.375rem;
+    padding: 0.3rem 0.4rem;
+    color: #e4e4e7;
+    font-size: 11px;
+    outline: none;
+}
+
+.met-song-row input:focus,
+.met-song-row select:focus {
+    border-color: #f59e0b;
+}
+
+.met-song-row input::placeholder {
+    color: #52525b;
+}
+
+.met-song-move {
+    width: 1.25rem;
+    height: 1.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 0.25rem;
+    color: #71717a;
+    font-size: 10px;
+    transition: color 120ms;
+}
+
+.met-song-move:hover {
+    color: #fbbf24;
+}
+
+.met-song-move.met-song-del:hover {
+    color: #fb7185;
+}
+
 /* 한 줄로 굴러가는 동안 칩이 찌그러지지 않게 합니다 (안내 문단은 그대로 접힙니다). */
 #met-presets > div {
     flex-shrink: 0;

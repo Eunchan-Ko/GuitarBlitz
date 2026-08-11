@@ -8,8 +8,12 @@
    =================================================================== */
 
 const PRESETS_STORAGE_KEY = 'guitarblitz.metronomePresets';
+const SONGS_STORAGE_KEY = 'guitarblitz.metronomeSongs';
 const VISUAL_QUEUE_LIMIT = 64;
 const BEAT_STATE_ORDER = ['normal', 'accent', 'mute'];
+
+// 보이스 카운트용 숫자 음성. 박 수 상한(설정 카드의 met-beats)이 7 이라 7개면 충분합니다.
+const VOICE_SAMPLE_URLS = Array.from({ length: 7 }, (_, i) => `./assets/audio/count-${i + 1}.wav`);
 
 const Metronome = {
     bpm: METRONOME_CONFIG.defaultBpm,
@@ -21,11 +25,19 @@ const Metronome = {
     beatStates: ['accent', 'normal', 'normal', 'normal'],
 
     volume: 0.7,
+    soundMode: 'click',    // 'click'=클릭음 | 'voice'=박 번호를 읽어주는 음성
     isPlaying: false,
+
+    // 곡 모드. { name, sections: [{ name, measures, bpm?, beatsPerMeasure? }] }
+    // 섹션의 bpm / beatsPerMeasure 가 비어 있으면(null) 직전 설정을 그대로 씁니다.
+    song: null,
+    songLoop: false,
 
     onBeat: null,          // ({ beat, tick, isDownbeat, isBeat, time }) => void
                            //   time = 그 박이 울리도록 예약된 AudioContext 시각(초)
     onChange: null,        // () => void  (bpm/박자 등이 바뀔 때)
+    onSectionChange: null, // (index, section) => void  (곡의 구간이 넘어갈 때)
+    onSongEnd: null,       // () => void  (루프가 꺼진 곡을 끝까지 재생했을 때)
 
     _nextNoteTime: 0,
     _tick: 0,              // 마디 안에서의 subdivision 인덱스
@@ -33,6 +45,10 @@ const Metronome = {
     _visualQueue: [],
     _rafId: null,
     _taps: [],
+    _voices: null,         // [{buffer, offset}] — 보이스 모드를 처음 쓸 때 채웁니다
+    _voiceLoading: null,   // 진행 중인 로드 Promise (중복 요청 방지)
+    _songSectionIdx: 0,    // 지금 연주 중인 섹션
+    _songMeasure: 0,       // 그 섹션에서 지난 마디 수
 
     /* --- 설정 ------------------------------------------------------ */
     setBpm(value) {
@@ -78,6 +94,67 @@ const Metronome = {
         this._emitChange();
     },
 
+    /** @param {'click'|'voice'} mode 알 수 없는 값은 클릭으로 봅니다. */
+    setSoundMode(mode) {
+        this.soundMode = mode === 'voice' ? 'voice' : 'click';
+        this._emitChange();
+    },
+
+    /**
+     * 음성 샘플 7개를 한 번만 받아둡니다. 파일이 없거나 디코드가 안 되면
+     * 클릭 모드로 되돌립니다 (샘플 없이 보이스 모드로 두면 조용해지므로).
+     * 사용자 제스처 안에서 부르세요 — AudioContext 를 여기서 처음 만듭니다.
+     * @returns {Promise<boolean>} 보이스로 소리 낼 준비가 되었는지
+     */
+    ensureVoices() {
+        if (this._voices) return Promise.resolve(true);
+
+        this._voiceLoading = this._voiceLoading
+            || Promise.all(VOICE_SAMPLE_URLS.map(url => AudioEngine.loadSample(url)));
+
+        return this._voiceLoading.then(voices => {
+            this._voices = voices;
+            return true;
+        }).catch(err => {
+            console.warn('[Metronome] 음성 샘플을 불러오지 못했습니다.', err);
+            this._voiceLoading = null;   // 다음에 다시 시도할 수 있게 비웁니다
+            this.setSoundMode('click');
+            return false;
+        });
+    },
+
+    /* --- 곡 모드 --------------------------------------------------- */
+    /** @param {object|null} song null 이면 곡 없이(기존 동작) 돌아갑니다. */
+    setSong(song) {
+        this.song = song && song.sections && song.sections.length ? song : null;
+        this._songSectionIdx = 0;
+        this._songMeasure = 0;
+        // 재생 중에 곡을 바꾸면 새 곡의 첫 구간 설정을 바로 반영합니다.
+        if (this.isPlaying && this.song) this._applySection(0);
+        this._emitChange();
+    },
+
+    clearSong() {
+        this.setSong(null);
+    },
+
+    setSongLoop(on) {
+        this.songLoop = !!on;
+        this._emitChange();
+    },
+
+    /**
+     * 화면에 뿌릴 현재 구간 정보. 곡이 없으면 null.
+     * 예약 시점 기준이므로 마디가 실제로 들리기 시작할 때(다운비트) 읽어야 숫자가 맞습니다.
+     * @returns {{name:string, measure:number, measures:number}|null}
+     */
+    songStatus() {
+        const section = this.song && this.song.sections[this._songSectionIdx];
+        if (!section) return null;
+
+        return { name: section.name, measure: this._songMeasure + 1, measures: section.measures };
+    },
+
     /* --- 재생 ------------------------------------------------------ */
     toggle() {
         this.isPlaying ? this.stop() : this.start();
@@ -92,6 +169,13 @@ const Metronome = {
         this._visualQueue = [];
         // 첫 박이 잘리지 않도록 아주 짧은 여유를 둡니다.
         this._nextNoteTime = ctx.currentTime + 0.06;
+
+        // 곡은 항상 처음부터. 첫 구간 설정을 적용하고 안내 콜백도 여기서 한 번 울립니다.
+        if (this.song) {
+            this._songSectionIdx = 0;
+            this._songMeasure = 0;
+            this._applySection(0);
+        }
 
         this._schedulerId = setInterval(() => this._schedule(), METRONOME_CONFIG.lookaheadMs);
         this._drawLoop();
@@ -203,12 +287,69 @@ const Metronome = {
         }
     },
 
+    /* --- 곡 목록 (localStorage) ------------------------------------ */
+    songs: {
+        list() {
+            try {
+                const raw = localStorage.getItem(SONGS_STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        },
+
+        /** @returns {{ok:boolean, message?:string}} */
+        add(song) {
+            const all = this.list();
+
+            if (all.length >= METRONOME_CONFIG.maxSongs) {
+                return { ok: false, message: `곡은 최대 ${METRONOME_CONFIG.maxSongs}개까지 저장됩니다.` };
+            }
+
+            all.push(song);
+            this._write(all);
+            return { ok: true };
+        },
+
+        /** @returns {{ok:boolean, message?:string}} */
+        update(index, song) {
+            const all = this.list();
+
+            if (index < 0 || index >= all.length) {
+                return { ok: false, message: '없는 곡입니다.' };
+            }
+
+            all[index] = song;
+            this._write(all);
+            return { ok: true };
+        },
+
+        remove(index) {
+            const all = this.list();
+            if (index < 0 || index >= all.length) return;
+
+            all.splice(index, 1);
+            this._write(all);
+        },
+
+        _write(list) {
+            try {
+                localStorage.setItem(SONGS_STORAGE_KEY, JSON.stringify(list));
+            } catch (e) {
+                console.warn('[Metronome] 곡 저장에 실패했습니다.', e);
+            }
+        }
+    },
+
     /* --- 내부: 스케줄링 -------------------------------------------- */
     _schedule() {
         const ctx = AudioEngine.context();
         const horizon = ctx.currentTime + METRONOME_CONFIG.scheduleAheadSec;
 
-        while (this._nextNoteTime < horizon) {
+        // isPlaying 을 같이 보는 이유: 곡이 끝나면 _advance() 안에서 stop() 이 불리는데,
+        // 그때 즉시 빠져나오지 않으면 곡 뒤로 박을 계속 예약해 버립니다.
+        while (this.isPlaying && this._nextNoteTime < horizon) {
             this._scheduleClick(this._tick, this._nextNoteTime);
             this._visualQueue.push({ tick: this._tick, time: this._nextNoteTime });
             this._advance();
@@ -227,10 +368,57 @@ const Metronome = {
 
         const ticksPerMeasure = this.beatsPerMeasure * this.subdivision;
         this._tick = (this._tick + 1) % ticksPerMeasure;
+
+        // 마디가 넘어간 순간(=_tick 이 0 으로 랩)에만 곡을 한 마디 진행시킵니다.
+        if (this._tick === 0 && this.song) this._advanceSong();
+    },
+
+    /**
+     * 섹션 길이를 채우면 다음 섹션으로 넘어갑니다. 마지막 섹션 뒤에는
+     * 루프면 처음으로 돌아가고, 아니면 정지 + onSongEnd 입니다.
+     *
+     * 여기는 "직전 마디의 마지막 박을 예약한 직후" 입니다. 그 박은 아직 울리지 않았고
+     * 예약은 lookahead(최대 0.12s) 앞서 이뤄지므로, 전환과 콜백은 새 구간의 첫 박보다
+     * [마지막 한 박 + 최대 0.12s] 만큼 이릅니다. 소리(예약 시각)는 정확하고 화면·음성만
+     * 그만큼 먼저 바뀌는데, 다음 구간을 미리 알려주는 쪽이 연주에 낫기도 해서 그대로 둡니다.
+     */
+    _advanceSong() {
+        const sections = this.song.sections;
+        const current = sections[this._songSectionIdx];
+        this._songMeasure++;
+
+        if (this._songMeasure < (current ? current.measures : 1)) return;
+
+        this._songMeasure = 0;
+
+        if (this._songSectionIdx + 1 < sections.length) {
+            this._songSectionIdx++;
+        } else if (this.songLoop) {
+            this._songSectionIdx = 0;
+        } else {
+            this.stop();
+            if (this.onSongEnd) this.onSongEnd();
+            return;
+        }
+
+        this._applySection(this._songSectionIdx);
+    },
+
+    /** 섹션의 템포/박자를 적용합니다. 비어 있는 값은 직전 설정을 유지합니다. */
+    _applySection(index) {
+        const section = this.song && this.song.sections[index];
+        if (!section) return;
+
+        if (section.bpm) this.setBpm(section.bpm);
+        // setBeatsPerMeasure 는 _tick 을 0 으로 되돌리는데, 여기는 항상 마디 경계라 무해합니다.
+        if (section.beatsPerMeasure) this.setBeatsPerMeasure(section.beatsPerMeasure);
+
+        if (this.onSectionChange) this.onSectionChange(index, section);
     },
 
     _scheduleClick(tick, time) {
-        const state = this.beatStates[Math.floor(tick / this.subdivision)] || 'normal';
+        const beat = Math.floor(tick / this.subdivision);
+        const state = this.beatStates[beat] || 'normal';
 
         // 음소거된 박은 쪼갠 박까지 통째로 건너뜁니다 (화면 표시는 그대로 진행).
         if (state === 'mute') return;
@@ -238,6 +426,26 @@ const Metronome = {
         const ctx = AudioEngine.context();
         const isBeat = tick % this.subdivision === 0;
         const isAccent = isBeat && state === 'accent';
+
+        // 보이스 모드에서는 박 자리만 숫자 음성으로 바꾸고, 쪼갠 박은 클릭으로 둡니다.
+        // 샘플이 없는 박(로드 전 / 8박 이상)은 아래 클릭으로 흘러갑니다.
+        const voice = isBeat && this.soundMode === 'voice' && this._voices && this._voices[beat];
+        if (voice) {
+            const src = ctx.createBufferSource();
+            const gain = ctx.createGain();
+
+            src.buffer = voice.buffer;
+            // 강조 박은 조금 크게. 1 을 넘기면 찌그러지므로 상한을 둡니다.
+            const accentBoost = isAccent ? METRONOME_CONFIG.voiceAccentGain : 1;
+            gain.gain.setValueAtTime(Math.min(1, this.volume * accentBoost), time);
+
+            src.connect(gain);
+            gain.connect(ctx.destination);
+
+            // 파일 앞의 무음을 건너뛰어야 박에 맞춰 들립니다.
+            src.start(time, voice.offset);
+            return;
+        }
 
         // 강박 → 약박 → 쪼갠 박 순으로 높이와 크기를 낮춥니다.
         let freq = 800, gainValue = 0.25;
