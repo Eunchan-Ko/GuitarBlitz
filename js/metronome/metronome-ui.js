@@ -20,6 +20,8 @@ const MetronomeUI = (() => {
     let indicatorTheme = 'sweep';
 
     const INDICATOR_STORAGE_KEY = 'guitarblitz.metronomeIndicator';
+    const SOUND_STORAGE_KEY = 'guitarblitz.metronomeSound';
+    const SOUND_MODES = ['click', 'voice'];
     const NEEDLE_SWING_DEG = 28;
     const BEATS_MIN = 2;     // 설정 카드의 met-beats 옵션 범위와 같아야 합니다.
     const BEATS_MAX = 7;
@@ -59,6 +61,7 @@ const MetronomeUI = (() => {
             Metronome.onBeat = (beat) => this.flashBeat(beat);
 
             indicatorTheme = loadIndicatorTheme();
+            restoreSoundMode();
 
             bindTransport();
             bindSlideControl();
@@ -280,9 +283,46 @@ const MetronomeUI = (() => {
         resetIndicators();
     }
 
+    /* --- 사운드 종류 (클릭 / 보이스 카운트) --------------------------- */
+
+    /** 저장된 선택만 되살립니다. 파일은 첫 사용 시점(선택 변경 / 재생)에 받습니다. */
+    function restoreSoundMode() {
+        let saved = 'click';
+        try {
+            const raw = localStorage.getItem(SOUND_STORAGE_KEY);
+            if (SOUND_MODES.includes(raw)) saved = raw;
+        } catch (e) { /* 저장소 접근 불가 */ }
+
+        Metronome.setSoundMode(saved);
+        $('met-sound').value = saved;
+    }
+
+    /**
+     * 보이스 샘플을 준비하고 상태 문구를 갱신합니다.
+     * 이미 받아둔 경우 promise 가 즉시 풀려 "로드 중" 이 화면에 남지 않습니다.
+     */
+    function requestVoices() {
+        setSoundMessage('음성 로드 중...');
+
+        Metronome.ensureVoices().then(ok => {
+            // 문구는 한 줄(모바일 154px)에 들어가야 합니다 — 길어지면 아래 즐겨찾기를 밀어냅니다.
+            setSoundMessage(ok ? '' : '음성 로드 실패 · 클릭으로 전환');
+            // 실패하면 엔진이 클릭으로 되돌리므로 select 도 따라갑니다.
+            $('met-sound').value = Metronome.soundMode;
+        });
+    }
+
+    function setSoundMessage(message) {
+        $('met-sound-msg').innerText = message;
+    }
+
     /* --- 재생 -------------------------------------------------------- */
     function bindTransport() {
-        $('met-toggle').addEventListener('click', () => Metronome.toggle());
+        $('met-toggle').addEventListener('click', () => {
+            // 저장된 선택으로 시작하는 경우, 여기가 파일을 받을 첫 사용자 제스처입니다.
+            if (!Metronome.isPlaying && Metronome.soundMode === 'voice') requestVoices();
+            Metronome.toggle();
+        });
     }
 
     /* --- 좌우 슬라이드로 템포 조절 ----------------------------------- */
@@ -345,6 +385,20 @@ const MetronomeUI = (() => {
         $('met-volume').addEventListener('input', (e) => {
             Metronome.setVolume(e.target.value);
             $('met-volume-label').innerText = `${Math.round(Metronome.volume * 100)}%`;
+        });
+
+        $('met-sound').addEventListener('change', (e) => {
+            const mode = e.target.value;
+            Metronome.setSoundMode(mode);
+
+            try {
+                localStorage.setItem(SOUND_STORAGE_KEY, Metronome.soundMode);
+            } catch (err) {
+                console.warn('[Metronome] 사운드 설정 저장에 실패했습니다.', err);
+            }
+
+            if (mode === 'voice') requestVoices();
+            else setSoundMessage('');
         });
     }
 

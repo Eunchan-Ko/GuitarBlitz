@@ -5,7 +5,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-4">
 
     <!-- Left: Tempo control -->
-    <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-5 shadow-xl">
+    <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-5 shadow-xl">
         <!-- 좁은 화면에서는 탭 이름이 이미 "메트로놈"이라 제목을 접어 스크롤을 없앱니다.
              sr-only 이므로 스크린 리더에는 그대로 읽힙니다. -->
         <h2 class="sr-only sm:not-sr-only text-base font-bold sm:mb-3 text-zinc-100 flex items-center gap-2">
@@ -82,7 +82,7 @@
     </div>
 
     <!-- Right: Settings / Presets / Shortcuts (한 장으로 통합) -->
-    <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-5 shadow-xl space-y-2 sm:space-y-3">
+    <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-2.5 sm:p-5 shadow-xl space-y-1 sm:space-y-3">
 
         <h3 class="text-sm font-bold text-zinc-200 flex items-center gap-2">
             <i class="fa-solid fa-music text-amber-400"></i> 박자 설정
@@ -111,12 +111,25 @@
             </div>
         </div>
 
-        <div>
-            <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
-                <span>볼륨</span>
-                <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
+        <!-- 볼륨과 사운드 종류는 한 화면 유지를 위해 한 행에 나란히 둡니다. -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <div class="flex justify-between text-xs text-zinc-300 font-medium mb-1">
+                    <span>볼륨</span>
+                    <span id="met-volume-label" class="text-amber-400 font-bold">70%</span>
+                </div>
+                <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+                <!-- 음성 로드 상태. 이 한 줄만큼 카드가 높아지므로 아래 여백들에서 회수했습니다
+                     (좁은 화면 원스크린 예산은 metronome 뷰 전체에서 4px 밖에 남지 않습니다). -->
+                <p id="met-sound-msg" role="status" class="text-[11px] text-zinc-500 mt-1 sm:mt-1.5 h-4 leading-tight truncate"></p>
             </div>
-            <input type="range" id="met-volume" aria-label="메트로놈 볼륨" min="0" max="1" step="0.05" value="0.7" class="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer">
+            <div>
+                <label for="met-sound" class="block text-xs font-semibold text-zinc-300 mb-1">사운드</label>
+                <select id="met-sound" class="w-full bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs rounded-lg p-2 outline-none focus:border-amber-500">
+                    <option value="click" selected>클릭</option>
+                    <option value="voice">보이스 카운트</option>
+                </select>
+            </div>
         </div>
 
         <!-- Presets -->
@@ -131,7 +144,7 @@
             </div>
             <!-- 좁은 화면에서는 칩이 여러 줄로 늘어나 화면을 밀어내므로 한 줄로 두고 옆으로 굴립니다. -->
             <div id="met-presets" class="flex flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible gap-2"></div>
-            <p id="met-preset-msg" class="text-[11px] text-zinc-500 mt-1.5 sm:mt-2 h-4"></p>
+            <p id="met-preset-msg" class="text-[11px] text-zinc-500 mt-1 sm:mt-2 h-4"></p>
         </div>
 
         <!-- Shortcuts -->

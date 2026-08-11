@@ -11,6 +11,9 @@ const PRESETS_STORAGE_KEY = 'guitarblitz.metronomePresets';
 const VISUAL_QUEUE_LIMIT = 64;
 const BEAT_STATE_ORDER = ['normal', 'accent', 'mute'];
 
+// 보이스 카운트용 숫자 음성. 박 수 상한(설정 카드의 met-beats)이 7 이라 7개면 충분합니다.
+const VOICE_SAMPLE_URLS = Array.from({ length: 7 }, (_, i) => `./assets/audio/count-${i + 1}.wav`);
+
 const Metronome = {
     bpm: METRONOME_CONFIG.defaultBpm,
     beatsPerMeasure: 4,
@@ -21,6 +24,7 @@ const Metronome = {
     beatStates: ['accent', 'normal', 'normal', 'normal'],
 
     volume: 0.7,
+    soundMode: 'click',    // 'click'=클릭음 | 'voice'=박 번호를 읽어주는 음성
     isPlaying: false,
 
     onBeat: null,          // ({ beat, tick, isDownbeat, isBeat, time }) => void
@@ -33,6 +37,8 @@ const Metronome = {
     _visualQueue: [],
     _rafId: null,
     _taps: [],
+    _voices: null,         // [{buffer, offset}] — 보이스 모드를 처음 쓸 때 채웁니다
+    _voiceLoading: null,   // 진행 중인 로드 Promise (중복 요청 방지)
 
     /* --- 설정 ------------------------------------------------------ */
     setBpm(value) {
@@ -76,6 +82,35 @@ const Metronome = {
     setVolume(value) {
         this.volume = Math.max(0, Math.min(1, parseFloat(value)));
         this._emitChange();
+    },
+
+    /** @param {'click'|'voice'} mode 알 수 없는 값은 클릭으로 봅니다. */
+    setSoundMode(mode) {
+        this.soundMode = mode === 'voice' ? 'voice' : 'click';
+        this._emitChange();
+    },
+
+    /**
+     * 음성 샘플 7개를 한 번만 받아둡니다. 파일이 없거나 디코드가 안 되면
+     * 클릭 모드로 되돌립니다 (샘플 없이 보이스 모드로 두면 조용해지므로).
+     * 사용자 제스처 안에서 부르세요 — AudioContext 를 여기서 처음 만듭니다.
+     * @returns {Promise<boolean>} 보이스로 소리 낼 준비가 되었는지
+     */
+    ensureVoices() {
+        if (this._voices) return Promise.resolve(true);
+
+        this._voiceLoading = this._voiceLoading
+            || Promise.all(VOICE_SAMPLE_URLS.map(url => AudioEngine.loadSample(url)));
+
+        return this._voiceLoading.then(voices => {
+            this._voices = voices;
+            return true;
+        }).catch(err => {
+            console.warn('[Metronome] 음성 샘플을 불러오지 못했습니다.', err);
+            this._voiceLoading = null;   // 다음에 다시 시도할 수 있게 비웁니다
+            this.setSoundMode('click');
+            return false;
+        });
     },
 
     /* --- 재생 ------------------------------------------------------ */
@@ -230,7 +265,8 @@ const Metronome = {
     },
 
     _scheduleClick(tick, time) {
-        const state = this.beatStates[Math.floor(tick / this.subdivision)] || 'normal';
+        const beat = Math.floor(tick / this.subdivision);
+        const state = this.beatStates[beat] || 'normal';
 
         // 음소거된 박은 쪼갠 박까지 통째로 건너뜁니다 (화면 표시는 그대로 진행).
         if (state === 'mute') return;
@@ -238,6 +274,26 @@ const Metronome = {
         const ctx = AudioEngine.context();
         const isBeat = tick % this.subdivision === 0;
         const isAccent = isBeat && state === 'accent';
+
+        // 보이스 모드에서는 박 자리만 숫자 음성으로 바꾸고, 쪼갠 박은 클릭으로 둡니다.
+        // 샘플이 없는 박(로드 전 / 8박 이상)은 아래 클릭으로 흘러갑니다.
+        const voice = isBeat && this.soundMode === 'voice' && this._voices && this._voices[beat];
+        if (voice) {
+            const src = ctx.createBufferSource();
+            const gain = ctx.createGain();
+
+            src.buffer = voice.buffer;
+            // 강조 박은 조금 크게. 1 을 넘기면 찌그러지므로 상한을 둡니다.
+            const accentBoost = isAccent ? METRONOME_CONFIG.voiceAccentGain : 1;
+            gain.gain.setValueAtTime(Math.min(1, this.volume * accentBoost), time);
+
+            src.connect(gain);
+            gain.connect(ctx.destination);
+
+            // 파일 앞의 무음을 건너뛰어야 박에 맞춰 들립니다.
+            src.start(time, voice.offset);
+            return;
+        }
 
         // 강박 → 약박 → 쪼갠 박 순으로 높이와 크기를 낮춥니다.
         let freq = 800, gainValue = 0.25;
